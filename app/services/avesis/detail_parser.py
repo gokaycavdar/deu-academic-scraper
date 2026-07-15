@@ -36,12 +36,16 @@ def _extract_title(content: Tag) -> str:
     title_element = content.select_one("h1.mb-none")
 
     if title_element is None:
-        raise ValueError("AVESİS detay sayfasında kayıt başlığı bulunamadı.")
+        raise ValueError(
+            "AVESİS detay sayfasında kayıt başlığı bulunamadı."
+        )
 
-    title = title_element.get_text(" ", strip=True)
+    title = _get_text(title_element)
 
     if not title:
-        raise ValueError("AVESİS detay sayfasındaki kayıt başlığı boş.")
+        raise ValueError(
+            "AVESİS detay sayfasındaki kayıt başlığı boş."
+        )
 
     return title
 
@@ -58,13 +62,11 @@ def _extract_contributors(content: Tag) -> tuple[tuple[str, ...], str]:
         return (), ""
 
     names = tuple(
-        anchor.get_text(" ", strip=True)
+        _get_text(anchor)
         for anchor in contributor_container.select("a.authorsRichText")
     )
 
-    text = contributor_container.get_text(" ", strip=True)
-
-    return names, text
+    return names, _get_text(contributor_container)
 
 
 def _extract_citation_text(content: Tag) -> str:
@@ -73,7 +75,7 @@ def _extract_citation_text(content: Tag) -> str:
     if citation_element is None:
         return ""
 
-    return citation_element.get_text(" ", strip=True)
+    return _get_text(citation_element)
 
 
 def _extract_fields(content: Tag) -> dict[str, str]:
@@ -81,7 +83,7 @@ def _extract_fields(content: Tag) -> dict[str, str]:
 
     for item in content.select("li.list-group-item"):
         for label in item.select("strong"):
-            field_name = label.get_text(" ", strip=True).rstrip(":")
+            field_name = _get_text(label).rstrip(":")
 
             if not field_name:
                 continue
@@ -99,9 +101,15 @@ def _extract_fields(content: Tag) -> dict[str, str]:
             if not isinstance(value_container, Tag):
                 continue
 
-            field_value = value_container.get_text(" ", strip=True)
+            field_value = _get_text(value_container)
 
             if field_value:
                 fields[field_name] = field_value
 
     return fields
+
+
+def _get_text(element: Tag) -> str:
+    return " ".join(
+        element.get_text(" ", strip=True).split()
+    )

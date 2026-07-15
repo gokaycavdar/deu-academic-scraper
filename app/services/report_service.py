@@ -1,20 +1,26 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Iterable
+from typing import Callable, Iterable
 
 from app.services.avesis.client import (
     AvesisClient,
     AvesisRequestError,
 )
 from app.services.avesis.detail_parser import parse_detail_page
-from app.services.avesis.list_parser import parse_publication_list
+from app.services.avesis.list_parser import (
+    PublicationListItem,
+    parse_publication_list,
+)
 from app.services.avesis.normalizer import (
     NormalizedRecord,
     normalize_activity,
     normalize_publication,
 )
-from app.services.avesis.project_list_parser import parse_project_list
+from app.services.avesis.project_list_parser import (
+    ActivityListItem,
+    parse_project_list,
+)
 from app.services.faculty_catalog import Faculty
 from app.services.record_filter import (
     YearScope,
@@ -29,6 +35,20 @@ SUPPORTED_RECORD_TYPES = {
     "project",
     "patent",
 }
+
+PUBLICATION_RECORD_TYPES = {
+    "article",
+    "conference_paper",
+    "book",
+}
+
+ACTIVITY_RECORD_TYPES = {
+    "project",
+    "patent",
+}
+
+ProgressCallback = Callable[[int, int | None, str], None]
+DetailItem = PublicationListItem | ActivityListItem
 
 
 @dataclass(frozen=True)
@@ -45,6 +65,12 @@ class ReportResult:
     issues: list[ReportIssue] = field(default_factory=list)
 
 
+@dataclass(frozen=True)
+class DetailWorkItem:
+    academician: Faculty
+    item: DetailItem
+
+
 class ReportService:
     def __init__(self, client: AvesisClient) -> None:
         self._client = client
@@ -54,62 +80,111 @@ class ReportService:
         academicians: Iterable[Faculty],
         selected_record_types: set[str],
         year_scope: YearScope,
+        progress_callback: ProgressCallback | None = None,
     ) -> ReportResult:
         self._validate_record_types(selected_record_types)
 
         result = ReportResult()
+        academician_list = list(academicians)
 
-        for academician in academicians:
-            self._collect_for_academician(
-                academician=academician,
-                selected_record_types=selected_record_types,
+        self._notify_progress(
+            progress_callback,
+            completed=0,
+            total=None,
+            message="AVESİS kayıt listeleri okunuyor.",
+        )
+
+        work_items = self._build_detail_work_items(
+            academicians=academician_list,
+            selected_record_types=selected_record_types,
+            result=result,
+            progress_callback=progress_callback,
+        )
+
+        total = len(work_items)
+
+        self._notify_progress(
+            progress_callback,
+            completed=0,
+            total=total,
+            message=f"{total} kayıt detayı okunacak.",
+        )
+
+        for completed, work_item in enumerate(work_items, start=1):
+            self._collect_detail_work_item(
+                work_item=work_item,
                 year_scope=year_scope,
                 result=result,
+            )
+
+            self._notify_progress(
+                progress_callback,
+                completed=completed,
+                total=total,
+                message=(
+                    f"{work_item.academician.full_name}: "
+                    f"{completed}/{total} kayıt işlendi."
+                ),
             )
 
         return result
 
-    def _collect_for_academician(
+    def _build_detail_work_items(
+        self,
+        academicians: list[Faculty],
+        selected_record_types: set[str],
+        result: ReportResult,
+        progress_callback: ProgressCallback | None,
+    ) -> list[DetailWorkItem]:
+        work_items: list[DetailWorkItem] = []
+
+        for academician in academicians:
+            if selected_record_types & PUBLICATION_RECORD_TYPES:
+                self._notify_progress(
+                    progress_callback,
+                    completed=0,
+                    total=None,
+                    message=(
+                        f"{academician.full_name}: "
+                        "yayın listesi okunuyor."
+                    ),
+                )
+
+                work_items.extend(
+                    self._get_publication_work_items(
+                        academician=academician,
+                        selected_record_types=selected_record_types,
+                        result=result,
+                    )
+                )
+
+            if selected_record_types & ACTIVITY_RECORD_TYPES:
+                self._notify_progress(
+                    progress_callback,
+                    completed=0,
+                    total=None,
+                    message=(
+                        f"{academician.full_name}: "
+                        "proje ve patent listesi okunuyor."
+                    ),
+                )
+
+                work_items.extend(
+                    self._get_activity_work_items(
+                        academician=academician,
+                        selected_record_types=selected_record_types,
+                        result=result,
+                    )
+                )
+
+        return work_items
+
+    def _get_publication_work_items(
         self,
         academician: Faculty,
         selected_record_types: set[str],
-        year_scope: YearScope,
         result: ReportResult,
-    ) -> None:
-        publication_types = {
-            "article",
-            "conference_paper",
-            "book",
-        }
-
-        activity_types = {
-            "project",
-            "patent",
-        }
-
-        if selected_record_types & publication_types:
-            self._collect_publications(
-                academician=academician,
-                selected_record_types=selected_record_types,
-                year_scope=year_scope,
-                result=result,
-            )
-
-        if selected_record_types & activity_types:
-            self._collect_activities(
-                academician=academician,
-                selected_record_types=selected_record_types,
-                year_scope=year_scope,
-                result=result,
-            )
-
-    def _collect_publications(
-        self,
-        academician: Faculty,
-        selected_record_types: set[str],
-        year_scope: YearScope,
-        result: ReportResult,
-    ) -> None:
+    ) -> list[DetailWorkItem]:
         try:
             list_page = self._client.get_publications(
                 academician.profile_url
@@ -123,42 +198,23 @@ class ReportService:
                 source_url=academician.profile_url,
                 message=str(error),
             )
-            return
+            return []
 
-        for item in items:
-            if item.record_type.value not in selected_record_types:
-                continue
+        return [
+            DetailWorkItem(
+                academician=academician,
+                item=item,
+            )
+            for item in items
+            if item.record_type.value in selected_record_types
+        ]
 
-            try:
-                detail_page = self._client.get_html(item.detail_url)
-                detail = parse_detail_page(detail_page.html)
-
-                record = normalize_publication(
-                    academician_id=academician.id,
-                    academician_name=academician.full_name,
-                    item=item,
-                    detail=detail,
-                )
-            except (AvesisRequestError, ValueError) as error:
-                self._add_issue(
-                    result=result,
-                    academician=academician,
-                    record_type=item.record_type.value,
-                    source_url=item.detail_url,
-                    message=str(error),
-                )
-                continue
-
-            if record_matches_year_scope(record, year_scope):
-                result.records.append(record)
-
-    def _collect_activities(
+    def _get_activity_work_items(
         self,
         academician: Faculty,
         selected_record_types: set[str],
-        year_scope: YearScope,
         result: ReportResult,
-    ) -> None:
+    ) -> list[DetailWorkItem]:
         try:
             list_page = self._client.get_projects(
                 academician.profile_url
@@ -172,34 +228,104 @@ class ReportService:
                 source_url=academician.profile_url,
                 message=str(error),
             )
+            return []
+
+        return [
+            DetailWorkItem(
+                academician=academician,
+                item=item,
+            )
+            for item in items
+            if item.record_type.value in selected_record_types
+        ]
+
+    def _collect_detail_work_item(
+        self,
+        work_item: DetailWorkItem,
+        year_scope: YearScope,
+        result: ReportResult,
+    ) -> None:
+        if isinstance(work_item.item, PublicationListItem):
+            self._collect_publication_detail(
+                work_item=work_item,
+                year_scope=year_scope,
+                result=result,
+            )
             return
 
-        for item in items:
-            if item.record_type.value not in selected_record_types:
-                continue
+        self._collect_activity_detail(
+            work_item=work_item,
+            year_scope=year_scope,
+            result=result,
+        )
 
-            try:
-                detail_page = self._client.get_html(item.detail_url)
-                detail = parse_detail_page(detail_page.html)
+    def _collect_publication_detail(
+        self,
+        work_item: DetailWorkItem,
+        year_scope: YearScope,
+        result: ReportResult,
+    ) -> None:
+        item = work_item.item
 
-                record = normalize_activity(
-                    academician_id=academician.id,
-                    academician_name=academician.full_name,
-                    item=item,
-                    detail=detail,
-                )
-            except (AvesisRequestError, ValueError) as error:
-                self._add_issue(
-                    result=result,
-                    academician=academician,
-                    record_type=item.record_type.value,
-                    source_url=item.detail_url,
-                    message=str(error),
-                )
-                continue
+        if not isinstance(item, PublicationListItem):
+            raise TypeError("Yayın detay öğesi bekleniyordu.")
 
-            if record_matches_year_scope(record, year_scope):
-                result.records.append(record)
+        try:
+            detail_page = self._client.get_html(item.detail_url)
+            detail = parse_detail_page(detail_page.html)
+
+            record = normalize_publication(
+                academician_id=work_item.academician.id,
+                academician_name=work_item.academician.full_name,
+                item=item,
+                detail=detail,
+            )
+        except (AvesisRequestError, ValueError) as error:
+            self._add_issue(
+                result=result,
+                academician=work_item.academician,
+                record_type=item.record_type.value,
+                source_url=item.detail_url,
+                message=str(error),
+            )
+            return
+
+        if record_matches_year_scope(record, year_scope):
+            result.records.append(record)
+
+    def _collect_activity_detail(
+        self,
+        work_item: DetailWorkItem,
+        year_scope: YearScope,
+        result: ReportResult,
+    ) -> None:
+        item = work_item.item
+
+        if not isinstance(item, ActivityListItem):
+            raise TypeError("Proje veya patent detay öğesi bekleniyordu.")
+
+        try:
+            detail_page = self._client.get_html(item.detail_url)
+            detail = parse_detail_page(detail_page.html)
+
+            record = normalize_activity(
+                academician_id=work_item.academician.id,
+                academician_name=work_item.academician.full_name,
+                item=item,
+                detail=detail,
+            )
+        except (AvesisRequestError, ValueError) as error:
+            self._add_issue(
+                result=result,
+                academician=work_item.academician,
+                record_type=item.record_type.value,
+                source_url=item.detail_url,
+                message=str(error),
+            )
+            return
+
+        if record_matches_year_scope(record, year_scope):
+            result.records.append(record)
 
     @staticmethod
     def _validate_record_types(
@@ -217,6 +343,19 @@ class ReportService:
             raise ValueError(
                 f"Desteklenmeyen kayıt türleri seçildi: {unknown}"
             )
+
+    @staticmethod
+    def _notify_progress(
+        progress_callback: ProgressCallback | None,
+        *,
+        completed: int,
+        total: int | None,
+        message: str,
+    ) -> None:
+        if progress_callback is None:
+            return
+
+        progress_callback(completed, total, message)
 
     @staticmethod
     def _add_issue(

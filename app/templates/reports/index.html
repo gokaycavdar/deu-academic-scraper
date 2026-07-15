@@ -21,13 +21,9 @@
     </header>
 
     <main class="container page-content">
-        {% if error_message %}
-        <div class="form-error" role="alert">
-            {{ error_message }}
-        </div>
-        {% endif %}
+        <div id="form-error" class="form-error" role="alert" hidden></div>
 
-        <form id="report-form" action="{{ url_for('export_report') }}" method="post">
+        <form id="report-form" action="{{ url_for('start_report') }}" method="post">
             <section class="report-layout">
                 <div class="panel">
                     <div class="panel-heading">
@@ -45,8 +41,7 @@
                         {% for academician in academicians %}
                         <label class="faculty-option"
                             data-search-text="{{ academician.full_name }} {{ academician.unit }}">
-                            <input type="checkbox" name="academician_ids" value="{{ academician.id }}" {% if
-                                academician.id in selected_academician_ids %}checked{% endif %}>
+                            <input type="checkbox" name="academician_ids" value="{{ academician.id }}">
 
                             <span>
                                 <strong>{{ academician.full_name }}</strong>
@@ -72,15 +67,13 @@
 
                     <div class="radio-row">
                         <label>
-                            <input type="radio" name="period_mode" value="single" {% if period_mode=="single"
-                                %}checked{% endif %}>
+                            <input type="radio" name="period_mode" value="single" checked>
                             Tek yıl
                         </label>
 
-                        <select name="single_year" aria-label="Yıl seç" data-period-control="single" {% if period_mode
-                            !="single" %}disabled{% endif %}>
+                        <select name="single_year" aria-label="Yıl seç" data-period-control="single">
                             {% for year in year_options %}
-                            <option value="{{ year }}" {% if year==single_year %}selected{% endif %}>
+                            <option value="{{ year }}" {% if year==current_year %}selected{% endif %}>
                                 {{ year }}
                             </option>
                             {% endfor %}
@@ -89,25 +82,22 @@
 
                     <div class="radio-row">
                         <label>
-                            <input type="radio" name="period_mode" value="range" {% if period_mode=="range" %}checked{%
-                                endif %}>
+                            <input type="radio" name="period_mode" value="range">
                             Yıl aralığı
                         </label>
 
                         <span class="period-inputs">
-                            <select name="start_year" aria-label="Başlangıç yılı" data-period-control="range" {% if
-                                period_mode !="range" %}disabled{% endif %}>
+                            <select name="start_year" aria-label="Başlangıç yılı" data-period-control="range" disabled>
                                 {% for year in year_options %}
-                                <option value="{{ year }}" {% if year==start_year %}selected{% endif %}>
+                                <option value="{{ year }}" {% if year==current_year %}selected{% endif %}>
                                     {{ year }}
                                 </option>
                                 {% endfor %}
                             </select>
 
-                            <select name="end_year" aria-label="Bitiş yılı" data-period-control="range" {% if
-                                period_mode !="range" %}disabled{% endif %}>
+                            <select name="end_year" aria-label="Bitiş yılı" data-period-control="range" disabled>
                                 {% for year in year_options %}
-                                <option value="{{ year }}" {% if year==end_year %}selected{% endif %}>
+                                <option value="{{ year }}" {% if year==current_year %}selected{% endif %}>
                                     {{ year }}
                                 </option>
                                 {% endfor %}
@@ -117,8 +107,7 @@
 
                     <div class="radio-row">
                         <label>
-                            <input type="radio" name="period_mode" value="all" {% if period_mode=="all" %}checked{%
-                                endif %}>
+                            <input type="radio" name="period_mode" value="all">
                             Tüm yıllar
                         </label>
                     </div>
@@ -136,8 +125,7 @@
                     <div class="checkbox-grid">
                         {% for record_type, label in record_type_options %}
                         <label>
-                            <input type="checkbox" name="record_types" value="{{ record_type }}" {% if record_type in
-                                selected_record_types %}checked{% endif %}>
+                            <input type="checkbox" name="record_types" value="{{ record_type }}" checked>
                             {{ label }}
                         </label>
                         {% endfor %}
@@ -149,7 +137,16 @@
                 <div>
                     <strong>Rapor hazır olduğunda tek Excel dosyası indirilecektir.</strong>
                     <p>Seçilen kayıt türleri Excel içinde ayrı sekmeler olarak yer alır.</p>
-                    <p id="submit-status" class="submit-status" aria-live="polite"></p>
+
+                    <div id="report-progress" class="report-progress" aria-live="polite" hidden>
+                        <p id="report-progress-count"></p>
+                        <p id="report-progress-message"></p>
+
+                        <div class="progress-track" role="progressbar" aria-label="Rapor oluşturma ilerlemesi"
+                            aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                            <div id="progress-bar" class="progress-bar"></div>
+                        </div>
+                    </div>
                 </div>
 
                 <button id="report-submit" type="submit">
@@ -164,7 +161,16 @@
         const academicianOptions = document.querySelectorAll(".faculty-option");
         const reportForm = document.querySelector("#report-form");
         const reportButton = document.querySelector("#report-submit");
-        const submitStatus = document.querySelector("#submit-status");
+        const formError = document.querySelector("#form-error");
+        const reportProgress = document.querySelector("#report-progress");
+        const progressCount = document.querySelector(
+            "#report-progress-count"
+        );
+        const progressMessage = document.querySelector(
+            "#report-progress-message"
+        );
+        const progressTrack = document.querySelector(".progress-track");
+        const progressBar = document.querySelector("#progress-bar");
         const periodInputs = document.querySelectorAll(
             'input[name="period_mode"]'
         );
@@ -172,8 +178,12 @@
             "[data-period-control]"
         );
 
+        let isSubmitting = false;
+
         searchInput.addEventListener("input", () => {
-            const searchText = searchInput.value.trim().toLocaleLowerCase("tr");
+            const searchText = searchInput.value
+                .trim()
+                .toLocaleLowerCase("tr");
 
             academicianOptions.forEach((option) => {
                 const optionText = option.dataset.searchText
@@ -195,11 +205,111 @@
             });
         }
 
+        function showError(message) {
+            formError.textContent = message;
+            formError.hidden = false;
+        }
+
+        function clearError() {
+            formError.textContent = "";
+            formError.hidden = true;
+        }
+
+        function resetSubmitButton() {
+            isSubmitting = false;
+            reportButton.disabled = false;
+            reportButton.textContent = "Excel Raporunu Oluştur";
+        }
+
+        function updateProgress(status) {
+            reportProgress.hidden = false;
+            progressMessage.textContent = status.message;
+
+            if (status.total === null) {
+                progressCount.textContent = (
+                    "Kayıt sayısı hesaplanıyor..."
+                );
+                progressBar.style.width = "0%";
+                progressTrack.setAttribute("aria-valuenow", "0");
+                return;
+            }
+
+            progressCount.textContent = (
+                `${status.completed} / ${status.total} kayıt işlendi`
+            );
+
+            const percent = status.progress_percent ?? 0;
+
+            progressBar.style.width = `${percent}%`;
+            progressTrack.setAttribute(
+                "aria-valuenow",
+                String(percent)
+            );
+        }
+
+        async function getErrorMessage(response) {
+            try {
+                const data = await response.json();
+
+                return data.detail || "Rapor oluşturulamadı.";
+            } catch {
+                return "Rapor oluşturulamadı.";
+            }
+        }
+
+        async function pollReportStatus(statusUrl) {
+            try {
+                const response = await fetch(statusUrl);
+
+                if (!response.ok) {
+                    throw new Error(
+                        await getErrorMessage(response)
+                    );
+                }
+
+                const status = await response.json();
+
+                updateProgress(status);
+
+                if (status.state === "ready") {
+                    reportButton.textContent = "Rapor indiriliyor...";
+
+                    window.location.assign(status.download_url);
+
+                    window.setTimeout(resetSubmitButton, 1500);
+                    return;
+                }
+
+                if (status.state === "failed") {
+                    throw new Error(
+                        status.error_message
+                        || "Rapor oluşturulamadı."
+                    );
+                }
+
+                window.setTimeout(
+                    () => pollReportStatus(statusUrl),
+                    1000,
+                );
+            } catch (error) {
+                showError(error.message);
+                resetSubmitButton();
+            }
+        }
+
         periodInputs.forEach((input) => {
             input.addEventListener("change", updatePeriodControls);
         });
 
-        reportForm.addEventListener("submit", (event) => {
+        reportForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            if (isSubmitting) {
+                return;
+            }
+
+            clearError();
+
             const selectedAcademicians = document.querySelectorAll(
                 'input[name="academician_ids"]:checked'
             );
@@ -209,22 +319,43 @@
             );
 
             if (!selectedAcademicians.length) {
-                event.preventDefault();
-                submitStatus.textContent = "En az bir akademisyen seçmelisiniz.";
+                showError("En az bir akademisyen seçmelisiniz.");
                 return;
             }
 
             if (!selectedRecordTypes.length) {
-                event.preventDefault();
-                submitStatus.textContent = "En az bir kayıt türü seçmelisiniz.";
+                showError("En az bir kayıt türü seçmelisiniz.");
                 return;
             }
 
+            isSubmitting = true;
             reportButton.disabled = true;
             reportButton.textContent = "Rapor hazırlanıyor...";
-            submitStatus.textContent = (
-                "AVESİS kayıtları okunuyor. Seçiminize göre bu işlem sürebilir."
-            );
+            reportProgress.hidden = false;
+            progressCount.textContent = "Rapor başlatılıyor...";
+            progressMessage.textContent = "";
+            progressBar.style.width = "0%";
+            progressTrack.setAttribute("aria-valuenow", "0");
+
+            try {
+                const response = await fetch(reportForm.action, {
+                    method: "POST",
+                    body: new FormData(reportForm),
+                });
+
+                if (!response.ok) {
+                    throw new Error(
+                        await getErrorMessage(response)
+                    );
+                }
+
+                const job = await response.json();
+
+                pollReportStatus(job.status_url);
+            } catch (error) {
+                showError(error.message);
+                resetSubmitButton();
+            }
         });
 
         updatePeriodControls();
