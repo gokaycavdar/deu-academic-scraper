@@ -9,6 +9,7 @@ CATALOG_PATH = PROJECT_DIR / "data" / "faculty_catalog.csv"
 REQUIRED_COLUMNS = {
     "id",
     "sort_order",
+    "academic_title",
     "full_name",
     "unit",
     "profile_url",
@@ -23,6 +24,7 @@ class Faculty:
     full_name: str
     unit: str
     profile_url: str
+    academic_title: str = ""
 
 
 def load_active_faculties(
@@ -58,6 +60,7 @@ def load_active_faculties(
                     row["sort_order"],
                     row["id"],
                 ),
+                academic_title=row["academic_title"].strip(),
                 full_name=row["full_name"].strip(),
                 unit=row["unit"].strip(),
                 profile_url=row["profile_url"].strip(),
@@ -114,6 +117,11 @@ def _is_active(value: str | None) -> bool:
 def _validate_faculty(faculty: Faculty) -> None:
     if not faculty.id:
         raise ValueError("Akademisyen kataloğunda boş 'id' değeri var.")
+
+    if not faculty.academic_title:
+        raise ValueError(
+            f"'{faculty.id}' kaydında akademik unvan boş."
+        )
 
     if not faculty.full_name:
         raise ValueError(

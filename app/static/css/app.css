@@ -220,11 +220,26 @@ select:focus {
 }
 
 .faculty-name {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+}
+
+.faculty-name strong {
     overflow: hidden;
     font-size: 14px;
-    font-weight: 700;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.faculty-name small {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.form-error--inline {
+    margin: 14px 0 0;
 }
 
 .search-empty,

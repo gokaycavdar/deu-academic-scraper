@@ -21,8 +21,6 @@
     </header>
 
     <main class="container page-content">
-        <div id="form-error" class="form-error" role="alert" hidden></div>
-
         <form id="report-form" action="{{ url_for('start_report') }}" method="post">
             <section class="panel academician-panel">
                 <div class="panel-heading">
@@ -61,11 +59,13 @@
 
                 <div class="faculty-list" role="group" aria-label="Akademisyen seçimi">
                     {% for academician in academicians %}
-                    <label class="faculty-option" data-search-text="{{ academician.full_name }} {{ academician.unit }}">
+                    <label class="faculty-option"
+                        data-search-text="{{ academician.academic_title }} {{ academician.full_name }} {{ academician.unit }}">
                         <input type="checkbox" name="academician_ids" value="{{ academician.id }}">
 
                         <span class="faculty-name">
-                            {{ academician.full_name }}
+                            <small>{{ academician.academic_title }}</small>
+                            <strong>{{ academician.full_name }}</strong>
                         </span>
                     </label>
                     {% else %}
@@ -174,6 +174,8 @@
                             <div id="progress-bar" class="progress-bar"></div>
                         </div>
                     </div>
+
+                    <div id="form-error" class="form-error form-error--inline" role="alert" hidden></div>
                 </div>
 
                 <button id="report-submit" type="submit">
