@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+
+# Ortam değişkenleri
+.env
+.env.*
+!.env.example
+
+# Üretilen raporlar ve ilerideki yerel önbellek
+data/generated/
+data/cache/
+
+# Test ve kapsama çıktıları
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE ve işletim sistemi dosyaları
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Loglar
+*.log
