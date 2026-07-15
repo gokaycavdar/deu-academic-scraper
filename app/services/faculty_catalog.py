@@ -13,6 +13,8 @@ REQUIRED_COLUMNS = {
     "full_name",
     "unit",
     "profile_url",
+    "yok_author_id",
+    "yok_profile_sira",
     "is_active",
 }
 
@@ -25,6 +27,8 @@ class Faculty:
     unit: str
     profile_url: str
     academic_title: str = ""
+    yok_author_id: str = ""
+    yok_profile_sira: str = ""
 
 
 def load_active_faculties(
@@ -64,6 +68,8 @@ def load_active_faculties(
                 full_name=row["full_name"].strip(),
                 unit=row["unit"].strip(),
                 profile_url=row["profile_url"].strip(),
+                yok_author_id=row["yok_author_id"].strip(),
+                yok_profile_sira=row["yok_profile_sira"].strip(),
             )
 
             _validate_faculty(faculty)
@@ -138,4 +144,14 @@ def _validate_faculty(faculty: Faculty) -> None:
     ):
         raise ValueError(
             f"'{faculty.id}' kaydında geçersiz AVESİS profil URL'si var."
+        )
+
+    if not faculty.yok_author_id:
+        raise ValueError(
+            f"'{faculty.id}' kaydında YÖK authorId boş."
+        )
+
+    if not faculty.yok_profile_sira:
+        raise ValueError(
+            f"'{faculty.id}' kaydında YÖK profil sira değeri boş."
         )

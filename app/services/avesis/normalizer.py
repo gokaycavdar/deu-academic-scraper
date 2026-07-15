@@ -27,7 +27,7 @@ class NormalizedRecord:
     citation_text: str
     year: int | None
     data: dict[str, str | int | None]
-
+    source_names: tuple[str, ...] = ("AVESİS",)
 
 def normalize_publication(
     academician_id: str,

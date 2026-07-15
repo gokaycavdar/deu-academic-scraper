@@ -1,23 +1,23 @@
-id,sort_order,academic_title,full_name,unit,profile_url,is_active
-derya-birant,10,Prof. Dr.,Derya Birant,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/derya.birant,true
-gokhan-dalkilic,20,Prof. Dr.,Gökhan Dalkılıç,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/gokhan.dalkilic,true
-mehmet-hilal-ozcanhan,30,Prof. Dr.,Mehmet Hilal Özcanhan,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/mehmet.ozcanhan,true
-recep-alp-kut,40,Prof. Dr.,Recep Alp Kut,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/alp.kut,true
-semih-utku,50,Prof. Dr.,Semih Utku,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/semih.utku,true
-yalcin-cebi,60,Prof. Dr.,Yalçın Çebi,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/yalcin.cebi,true
-kokten-ulas-birant,70,Doç. Dr.,Kökten Ulaş Birant,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/ulas.birant,true
-ozkan-ufuk-nalbantoglu,80,Doç. Dr.,Özkan Ufuk Nalbantoğlu,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/ozkanufuk.nalbantoglu,true
-ozlem-varliklar,90,Doç. Dr.,Özlem Varlıklar,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/aktas.ozlem,true
-yunus-dogan,100,Doç. Dr.,Yunus Doğan,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/y.dogan,true
-elife-ozturk-kiyak,110,Dr. Öğr. Üyesi,Elife Öztürk Kıyak,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/elife.ozturk,true
-feristah-dalkilic,120,Dr. Öğr. Üyesi,Feriştah Dalkılıç,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/feristah.orucu,true
-goksu-tuysuzoglu,130,Dr. Öğr. Üyesi,Göksu Tüysüzoğlu,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/goksu.tuysuzoglu,true
-ibrahim-atakan-kubilay,140,Arş. Gör. Dr.,İbrahim Atakan Kubilay,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/atakan.kubilay,true
-serife-yilmaz,150,Öğr. Gör.,Şerife Yılmaz,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/serife.yilmaz,true
-tanzer-onurgil,160,Öğr. Gör.,Tanzer Onurgil,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/tanzer.onurgil,true
-ege-kara,170,Arş. Gör.,Ege Kara,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/ege.kara,true
-fatih-dicle,180,Arş. Gör.,Fatih Dicle,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/fatih.dicle,true
-hasan-korkmaz,190,Arş. Gör.,Hasan Korkmaz,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/hasan.korkmaz,true
-muharremcan-gulye,200,Arş. Gör.,Muharremcan Gülye,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/muharremcan.gulye,true
-orkun-cinar,210,Arş. Gör.,Orkun Çınar,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/orkun.cinar,true
-safa-cevik,220,Arş. Gör.,Safa Çevik,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/safa.cevik,true
+id,sort_order,academic_title,full_name,unit,profile_url,yok_author_id,yok_profile_sira,is_active
+derya-birant,10,Prof. Dr.,Derya Birant,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/derya.birant,46DA83AC3B32E95B,_D2bDdARDMCOgjHVGzFVZw,true
+gokhan-dalkilic,20,Prof. Dr.,Gökhan Dalkılıç,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/gokhan.dalkilic,5C848D17F401312C,_D2bDdARDMCOgjHVGzFVZw,true
+mehmet-hilal-ozcanhan,30,Prof. Dr.,Mehmet Hilal Özcanhan,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/mehmet.ozcanhan,16F0193B33BD987B,_D2bDdARDMCOgjHVGzFVZw,true
+recep-alp-kut,40,Prof. Dr.,Recep Alp Kut,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/alp.kut,196E1E6217F01DE8,_D2bDdARDMCOgjHVGzFVZw,true
+semih-utku,50,Prof. Dr.,Semih Utku,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/semih.utku,55B8938317260677,_D2bDdARDMCOgjHVGzFVZw,true
+yalcin-cebi,60,Prof. Dr.,Yalçın Çebi,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/yalcin.cebi,AB7816DC6A411EB2,_D2bDdARDMCOgjHVGzFVZw,true
+kokten-ulas-birant,70,Doç. Dr.,Kökten Ulaş Birant,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/ulas.birant,31BA9E3BDEC6C775,_D2bDdARDMCOgjHVGzFVZw,true
+ozkan-ufuk-nalbantoglu,80,Doç. Dr.,Özkan Ufuk Nalbantoğlu,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/ozkanufuk.nalbantoglu,79E03BEEC621AE1F,_D2bDdARDMCOgjHVGzFVZw,true
+ozlem-varliklar,90,Doç. Dr.,Özlem Varlıklar,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/aktas.ozlem,4B0A86AF47512351,_D2bDdARDMCOgjHVGzFVZw,true
+yunus-dogan,100,Doç. Dr.,Yunus Doğan,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/y.dogan,415F67C923D5029D,VAWp5jxMDUj5cB0bvOvsDw,true
+elife-ozturk-kiyak,110,Dr. Öğr. Üyesi,Elife Öztürk Kıyak,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/elife.ozturk,377DB1222E495B4A,_D2bDdARDMCOgjHVGzFVZw,true
+feristah-dalkilic,120,Dr. Öğr. Üyesi,Feriştah Dalkılıç,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/feristah.orucu,26FF0ED20FC5FF3A,_D2bDdARDMCOgjHVGzFVZw,true
+goksu-tuysuzoglu,130,Dr. Öğr. Üyesi,Göksu Tüysüzoğlu,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/goksu.tuysuzoglu,CC5527B22DD826DE,_D2bDdARDMCOgjHVGzFVZw,true
+ibrahim-atakan-kubilay,140,Arş. Gör. Dr.,İbrahim Atakan Kubilay,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/atakan.kubilay,3056D1DB4F6D3124,_D2bDdARDMCOgjHVGzFVZw,true
+serife-yilmaz,150,Öğr. Gör.,Şerife Yılmaz,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/serife.yilmaz,C37726C1C638ACFD,nT3KGP3694fUamKe2z0D-w,true
+tanzer-onurgil,160,Öğr. Gör.,Tanzer Onurgil,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/tanzer.onurgil,2D502E7F91248FB7,_D2bDdARDMCOgjHVGzFVZw,true
+ege-kara,170,Arş. Gör.,Ege Kara,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/ege.kara,6B88178F477B8341,VAWp5jxMDUj5cB0bvOvsDw,true
+fatih-dicle,180,Arş. Gör.,Fatih Dicle,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/fatih.dicle,F94E722605D046EE,_D2bDdARDMCOgjHVGzFVZw,true
+hasan-korkmaz,190,Arş. Gör.,Hasan Korkmaz,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/hasan.korkmaz,EF205F00FE9AAEB5,V-OBp1_xUj06V-k5ii5aPQ,true
+muharremcan-gulye,200,Arş. Gör.,Muharremcan Gülye,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/muharremcan.gulye,CDA852C6EE1862C4,_D2bDdARDMCOgjHVGzFVZw,true
+orkun-cinar,210,Arş. Gör.,Orkun Çınar,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/orkun.cinar,EA8D5B033C3CF5A8,_D2bDdARDMCOgjHVGzFVZw,true
+safa-cevik,220,Arş. Gör.,Safa Çevik,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/safa.cevik,2F0226DDC465C1A9,_D2bDdARDMCOgjHVGzFVZw,true
