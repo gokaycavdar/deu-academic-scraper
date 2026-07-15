@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }} | DEÜ AVESİS</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/app.css') }}">
+</head>
+
+<body>
+    <header class="site-header">
+        <div class="container">
+            <p class="eyebrow">DOKUZ EYLÜL ÜNİVERSİTESİ</p>
+            <h1>AVESİS Akademik Rapor</h1>
+            <p class="subtitle">
+                Akademisyenleri seçin, zaman kapsamını ve kayıt türlerini belirleyin,
+                Excel raporunu oluşturun.
+            </p>
+        </div>
+    </header>
+
+    <main class="container page-content">
+        <section class="report-layout">
+            <div class="panel">
+                <div class="panel-heading">
+                    <span class="step">1</span>
+                    <div>
+                        <h2>Akademisyenler</h2>
+                        <p>Raporlanacak bir veya daha fazla akademisyeni seçin.</p>
+                    </div>
+                </div>
+
+                <input id="faculty-search" type="search" placeholder="Akademisyen veya birim ara"
+                    aria-label="Akademisyen veya birim ara">
+
+                <div class="faculty-list">
+                    {% for faculty in faculties %}
+                    <label class="faculty-option" data-search-text="{{ faculty.full_name }} {{ faculty.unit }}">
+                        <input type="checkbox" name="faculty_ids" value="{{ faculty.id }}">
+
+                        <span>
+                            <strong>{{ faculty.full_name }}</strong>
+                            <small>{{ faculty.unit }}</small>
+                        </span>
+                    </label>
+                    {% else %}
+                    <div class="empty-state">
+                        Seçilebilecek aktif akademisyen bulunamadı.
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-heading">
+                    <span class="step">2</span>
+                    <div>
+                        <h2>Zaman kapsamı</h2>
+                        <p>Varsayılan seçim tek yıldır.</p>
+                    </div>
+                </div>
+
+                <label class="radio-row">
+                    <input type="radio" name="period" checked>
+                    Tek yıl
+                    <select aria-label="Yıl seç">
+                        <option>2026</option>
+                        <option>2025</option>
+                        <option>2024</option>
+                    </select>
+                </label>
+
+                <label class="radio-row">
+                    <input type="radio" name="period">
+                    Yıl aralığı
+                </label>
+
+                <label class="radio-row">
+                    <input type="radio" name="period">
+                    Tüm yıllar
+                </label>
+            </div>
+
+            <div class="panel">
+                <div class="panel-heading">
+                    <span class="step">3</span>
+                    <div>
+                        <h2>Kayıt türleri</h2>
+                        <p>Tümü başlangıçta seçili gelir.</p>
+                    </div>
+                </div>
+
+                <div class="checkbox-grid">
+                    <label><input type="checkbox" checked> Makale</label>
+                    <label><input type="checkbox" checked> Bildiri</label>
+                    <label><input type="checkbox" checked> Kitap</label>
+                    <label><input type="checkbox" checked> Proje</label>
+                    <label><input type="checkbox" checked> Patent</label>
+                </div>
+            </div>
+        </section>
+
+        <section class="action-bar">
+            <div>
+                <strong>Rapor hazır olduğunda tek Excel dosyası indirilecektir.</strong>
+                <p>Seçilen kayıt türleri Excel içinde ayrı sekmeler olarak yer alır.</p>
+            </div>
+
+            <button type="button" disabled>
+                Rapor Oluştur
+            </button>
+        </section>
+    </main>
+</body>
+
+</html>
