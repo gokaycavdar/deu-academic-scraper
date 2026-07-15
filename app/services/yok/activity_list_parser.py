@@ -107,6 +107,7 @@ def _parse_patents(
     soup: BeautifulSoup,
 ) -> list[YokActivityListItem]:
     items: list[YokActivityListItem] = []
+    seen_registration_numbers: set[str] = set()
 
     for record in soup.select(".projectmain"):
         title_element = record.select_one(".projectTitle strong")
@@ -121,6 +122,15 @@ def _parse_patents(
         title, registration_number = _split_patent_title(
             raw_title
         )
+        
+        if (
+            registration_number is not None
+            and registration_number in seen_registration_numbers
+        ):
+            continue
+
+        if registration_number is not None:
+            seen_registration_numbers.add(registration_number)
 
         if not title:
             continue

@@ -34,11 +34,6 @@ PUBLICATION_RECORD_TYPES = {
     "book",
 }
 
-ACTIVITY_RECORD_TYPES = {
-    "project",
-    "patent",
-}
-
 RECORD_TYPE_ORDER = (
     "article",
     "conference_paper",
@@ -246,6 +241,7 @@ class YokReportCollector:
         ]
 
         total = len(selected_items)
+        seen_detail_dois: set[str] = set()
 
         self._notify_progress(
             progress_callback,
@@ -289,7 +285,25 @@ class YokReportCollector:
                 detail_fields=detail_fields,
             )
 
-            if record_matches_year_scope(record, year_scope):
+            doi_value = record.data.get("doi")
+
+            if isinstance(doi_value, str):
+                normalized_doi = doi_value.strip().casefold() or None
+            else:
+                normalized_doi = None
+
+            is_duplicate_doi = (
+                normalized_doi is not None
+                and normalized_doi in seen_detail_dois
+            )
+
+            if normalized_doi is not None:
+                seen_detail_dois.add(normalized_doi)
+
+            if (
+                not is_duplicate_doi
+                and record_matches_year_scope(record, year_scope)
+            ):
                 result.records.append(record)
 
             self._notify_progress(

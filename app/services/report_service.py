@@ -27,6 +27,9 @@ from app.services.record_filter import (
     list_year_matches_year_scope,
     record_matches_year_scope,
 )
+from app.services.record_merger import merge_source_records
+from app.services.yok.client import YokClient
+from app.services.yok.report_collector import YokReportCollector
 
 
 SUPPORTED_RECORD_TYPES = {
@@ -73,8 +76,13 @@ class DetailWorkItem:
 
 
 class ReportService:
-    def __init__(self, client: AvesisClient) -> None:
-        self._client = client
+    def __init__(
+        self,
+        avesis_client: AvesisClient,
+        yok_client: YokClient | None = None,
+    ) -> None:
+        self._avesis_client = avesis_client
+        self._yok_client = yok_client
 
     def collect_records(
         self,
@@ -109,10 +117,13 @@ class ReportService:
             progress_callback,
             completed=0,
             total=total,
-            message=f"{total} kayıt detayı okunacak.",
+            message=f"{total} AVESİS kayıt detayı okunacak.",
         )
 
-        for completed, work_item in enumerate(work_items, start=1):
+        for completed, work_item in enumerate(
+            work_items,
+            start=1,
+        ):
             self._collect_detail_work_item(
                 work_item=work_item,
                 year_scope=year_scope,
@@ -125,11 +136,62 @@ class ReportService:
                 total=total,
                 message=(
                     f"{work_item.academician.full_name}: "
-                    f"{completed}/{total} kayıt işlendi."
+                    f"AVESİS {completed}/{total} kayıt işlendi."
                 ),
             )
 
+        self._collect_yok_records(
+            academicians=academician_list,
+            selected_record_types=selected_record_types,
+            year_scope=year_scope,
+            result=result,
+            progress_callback=progress_callback,
+        )
+
         return result
+
+    def _collect_yok_records(
+        self,
+        *,
+        academicians: list[Faculty],
+        selected_record_types: set[str],
+        year_scope: YearScope,
+        result: ReportResult,
+        progress_callback: ProgressCallback | None,
+    ) -> None:
+        if self._yok_client is None:
+            return
+
+        self._notify_progress(
+            progress_callback,
+            completed=0,
+            total=None,
+            message="YÖK Akademik kayıt listeleri okunuyor.",
+        )
+
+        yok_result = YokReportCollector(
+            self._yok_client
+        ).collect_records(
+            academicians=academicians,
+            selected_record_types=selected_record_types,
+            year_scope=year_scope,
+            progress_callback=progress_callback,
+        )
+
+        result.records = merge_source_records(
+            result.records,
+            yok_result.records,
+        )
+
+        result.issues.extend(
+            ReportIssue(
+                academician_name=issue.academician_name,
+                record_type=issue.record_type,
+                source_url=issue.source_url,
+                message=f"YÖK Akademik: {issue.message}",
+            )
+            for issue in yok_result.issues
+        )
 
     def _build_detail_work_items(
         self,
@@ -149,7 +211,7 @@ class ReportService:
                     total=None,
                     message=(
                         f"{academician.full_name}: "
-                        "yayın listesi okunuyor."
+                        "AVESİS yayın listesi okunuyor."
                     ),
                 )
 
@@ -169,7 +231,7 @@ class ReportService:
                     total=None,
                     message=(
                         f"{academician.full_name}: "
-                        "proje ve patent listesi okunuyor."
+                        "AVESİS proje ve patent listesi okunuyor."
                     ),
                 )
 
@@ -191,7 +253,7 @@ class ReportService:
         result: ReportResult,
     ) -> list[DetailWorkItem]:
         try:
-            list_page = self._client.get_publications(
+            list_page = self._avesis_client.get_publications(
                 academician.profile_url
             )
             items = parse_publication_list(list_page.html)
@@ -227,7 +289,7 @@ class ReportService:
         result: ReportResult,
     ) -> list[DetailWorkItem]:
         try:
-            list_page = self._client.get_projects(
+            list_page = self._avesis_client.get_projects(
                 academician.profile_url
             )
             items = parse_project_list(list_page.html)
@@ -282,7 +344,9 @@ class ReportService:
             raise TypeError("Yayın detay öğesi bekleniyordu.")
 
         try:
-            detail_page = self._client.get_html(item.detail_url)
+            detail_page = self._avesis_client.get_html(
+                item.detail_url
+            )
             detail = parse_detail_page(detail_page.html)
 
             record = normalize_publication(
@@ -313,10 +377,14 @@ class ReportService:
         item = work_item.item
 
         if not isinstance(item, ActivityListItem):
-            raise TypeError("Proje veya patent detay öğesi bekleniyordu.")
+            raise TypeError(
+                "Proje veya patent detay öğesi bekleniyordu."
+            )
 
         try:
-            detail_page = self._client.get_html(item.detail_url)
+            detail_page = self._avesis_client.get_html(
+                item.detail_url
+            )
             detail = parse_detail_page(detail_page.html)
 
             record = normalize_activity(

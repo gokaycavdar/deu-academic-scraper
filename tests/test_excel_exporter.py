@@ -11,10 +11,10 @@ def test_exports_summary_and_selected_record_sheets(
 ) -> None:
     academician = Faculty(
         id="gokhan-dalkilic",
+        sort_order=10,
         full_name="Gökhan Dalkılıç",
         unit="Mühendislik Fakültesi / Bilgisayar Mühendisliği",
         profile_url="https://avesis.deu.edu.tr/gokhan.dalkilic",
-        sort_order=10,
     )
 
     article = NormalizedRecord(
@@ -35,7 +35,11 @@ def test_exports_summary_and_selected_record_sheets(
             "pages": "ss.10-20",
             "doi": "10.1000/test",
             "journal_indexes": "Scopus",
+            "scope": "Uluslararası",
+            "peer_review": "Hakemli",
+            "issn": "1234-5678",
         },
+        source_names=("AVESİS", "YÖK Akademik"),
     )
 
     patent = NormalizedRecord(
@@ -61,6 +65,7 @@ def test_exports_summary_and_selected_record_sheets(
             "application_date": "01.01.2023",
             "registration_date": "01.01.2024",
             "status": "Tescil Edildi",
+            "applicants": "Dokuz Eylül Üniversitesi",
         },
     )
 
@@ -85,29 +90,95 @@ def test_exports_summary_and_selected_record_sheets(
 
         summary_sheet = workbook["00_Ozet"]
 
-        assert summary_sheet["A1"].value == (
-            "DEÜ AVESİS Akademik Rapor"
-        )
+        assert summary_sheet["A1"].value == "DEÜ Akademik Rapor"
         assert summary_sheet["C8"].value == 1
         assert summary_sheet["D8"].value == 1
         assert summary_sheet["E8"].value == 2
         assert summary_sheet["F8"].value == 0
 
         article_sheet = workbook["01_Makaleler"]
+        article_columns = _header_columns(article_sheet)
 
-        assert article_sheet["C2"].value == "Test Makalesi"
-        assert article_sheet["E2"].value == "Test Dergisi"
-        assert article_sheet["I2"].value == "10.1000/test"
-        assert article_sheet["K2"].value == "Aç"
-        assert article_sheet["K2"].hyperlink.target == (
+        assert _cell_value(
+            article_sheet,
+            article_columns,
+            "Makale Adı",
+        ) == "Test Makalesi"
+        assert _cell_value(
+            article_sheet,
+            article_columns,
+            "Kayıt Kaynağı",
+        ) == "AVESİS + YÖK Akademik"
+        assert _cell_value(
+            article_sheet,
+            article_columns,
+            "Dergi",
+        ) == "Test Dergisi"
+        assert _cell_value(
+            article_sheet,
+            article_columns,
+            "DOI",
+        ) == "10.1000/test"
+        assert _cell_value(
+            article_sheet,
+            article_columns,
+            "Kapsam",
+        ) == "Uluslararası"
+        assert _cell_value(
+            article_sheet,
+            article_columns,
+            "Hakem Durumu",
+        ) == "Hakemli"
+        assert _cell_value(
+            article_sheet,
+            article_columns,
+            "ISSN",
+        ) == "1234-5678"
+
+        article_link_cell = article_sheet.cell(
+            row=2,
+            column=article_columns["AVESİS'te Aç"],
+        )
+
+        assert article_link_cell.value == "Aç"
+        assert article_link_cell.hyperlink is not None
+        assert article_link_cell.hyperlink.target == (
             "https://avesis.deu.edu.tr/yayin/article-test"
         )
 
         patent_sheet = workbook["05_Patentler"]
+        patent_columns = _header_columns(patent_sheet)
 
-        assert patent_sheet["B2"].value == "Test Patenti"
-        assert patent_sheet["F2"].value == "2024 00001"
-        assert patent_sheet["K2"].value == "Tescil Edildi"
-        assert patent_sheet["L2"].value == "Aç"
+        assert _cell_value(
+            patent_sheet,
+            patent_columns,
+            "Patent Adı",
+        ) == "Test Patenti"
+        assert _cell_value(
+            patent_sheet,
+            patent_columns,
+            "Patent Başvuru Sahibi",
+        ) == "Dokuz Eylül Üniversitesi"
+        assert _cell_value(
+            patent_sheet,
+            patent_columns,
+            "Durum",
+        ) == "Tescil Edildi"
     finally:
         workbook.close()
+
+
+def _header_columns(sheet) -> dict[str, int]:
+    return {
+        str(cell.value): cell.column
+        for cell in sheet[1]
+        if cell.value is not None
+    }
+
+
+def _cell_value(
+    sheet,
+    columns: dict[str, int],
+    header: str,
+):
+    return sheet.cell(row=2, column=columns[header]).value

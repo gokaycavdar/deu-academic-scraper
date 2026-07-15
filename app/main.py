@@ -24,7 +24,11 @@ from app.services.excel_exporter import (
 from app.services.faculty_catalog import Faculty, load_active_faculties
 from app.services.record_filter import YearScope
 from app.services.report_job_store import ReportJobStore
-from app.services.report_service import ReportService, SUPPORTED_RECORD_TYPES
+from app.services.report_service import (
+    ReportService,
+    SUPPORTED_RECORD_TYPES,
+)
+from app.services.yok.client import YokClient
 
 
 APP_DIR = Path(__file__).resolve().parent
@@ -45,8 +49,8 @@ RECORD_TYPE_OPTIONS = tuple(
 report_jobs = ReportJobStore()
 
 app = FastAPI(
-    title="DEÜ AVESİS Akademik Rapor",
-    version="0.1.0",
+    title="DEÜ Akademik Rapor",
+    version="0.2.0",
 )
 
 app.mount(
@@ -210,13 +214,17 @@ def _run_report_job(
 ) -> None:
     report_jobs.mark_running(
         job_id,
-        "AVESİS kayıt listeleri okunuyor.",
+        "AVESİS ve YÖK Akademik kayıt listeleri okunuyor.",
     )
 
-    client = AvesisClient()
+    avesis_client = AvesisClient()
+    yok_client = YokClient()
 
     try:
-        result = ReportService(client).collect_records(
+        result = ReportService(
+            avesis_client,
+            yok_client,
+        ).collect_records(
             academicians=academicians,
             selected_record_types=selected_record_types,
             year_scope=year_scope,
@@ -232,16 +240,6 @@ def _run_report_job(
             ),
         )
 
-        if result.issues:
-            report_jobs.mark_failed(
-                job_id,
-                (
-                    "AVESİS'ten bazı kayıtlar okunamadı. "
-                    "Lütfen yeniden deneyin."
-                ),
-            )
-            return
-
         if not result.records:
             report_jobs.mark_failed(
                 job_id,
@@ -253,7 +251,7 @@ def _run_report_job(
 
         report_path = _create_report_path()
         download_name = (
-            "deu_avesis_akademik_rapor_"
+            "deu_akademik_rapor_"
             f"{datetime.now():%Y-%m-%d_%H-%M}.xlsx"
         )
 
@@ -279,7 +277,8 @@ def _run_report_job(
             ),
         )
     finally:
-        client.close()
+        avesis_client.close()
+        yok_client.close()
 
 
 def _select_academicians(

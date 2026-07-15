@@ -35,6 +35,7 @@ class PublicationListItem:
 def parse_publication_list(html: str) -> list[PublicationListItem]:
     soup = BeautifulSoup(html, "html.parser")
     publications: list[PublicationListItem] = []
+    seen_detail_urls: set[str] = set()
 
     for section in soup.select("div.ac-item"):
         section_title = _get_section_title(section)
@@ -42,7 +43,9 @@ def parse_publication_list(html: str) -> list[PublicationListItem]:
         if section_title is None:
             continue
 
-        record_type = _map_section_to_publication_type(section_title)
+        record_type = _map_section_to_publication_type(
+            section_title
+        )
 
         if record_type is None:
             continue
@@ -55,8 +58,14 @@ def parse_publication_list(html: str) -> list[PublicationListItem]:
                 record_type,
             )
 
-            if item is not None:
-                publications.append(item)
+            if item is None:
+                continue
+
+            if item.detail_url in seen_detail_urls:
+                continue
+
+            seen_detail_urls.add(item.detail_url)
+            publications.append(item)
 
     return publications
 

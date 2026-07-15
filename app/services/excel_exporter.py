@@ -48,6 +48,21 @@ RECORD_TYPE_LABELS = {
     "project": "Proje",
     "patent": "Patent",
 }
+def _format_source_names(record: NormalizedRecord) -> str:
+    return " + ".join(record.source_names)
+
+
+def _format_budget(record: NormalizedRecord) -> str | None:
+    amount = record.data.get("budget_amount")
+    currency = record.data.get("budget_currency")
+
+    values = [
+        str(value)
+        for value in (amount, currency)
+        if value is not None and str(value).strip()
+    ]
+
+    return " ".join(values) or None
 
 SHEET_DEFINITIONS = {
     "article": SheetDefinition(
@@ -58,8 +73,15 @@ SHEET_DEFINITIONS = {
                 "Akademisyen",
                 lambda record: record.academician_name,
             ),
+            ColumnDefinition(
+                "Kayıt Kaynağı",
+                _format_source_names,
+            ),
             ColumnDefinition("Yıl", lambda record: record.year),
-            ColumnDefinition("Makale Adı", lambda record: record.title),
+            ColumnDefinition(
+                "Makale Adı",
+                lambda record: record.title,
+            ),
             ColumnDefinition(
                 "Yazarlar",
                 lambda record: record.contributor_names,
@@ -89,6 +111,18 @@ SHEET_DEFINITIONS = {
                 lambda record: record.data.get("journal_indexes"),
             ),
             ColumnDefinition(
+                "Kapsam",
+                lambda record: record.data.get("scope"),
+            ),
+            ColumnDefinition(
+                "Hakem Durumu",
+                lambda record: record.data.get("peer_review"),
+            ),
+            ColumnDefinition(
+                "ISSN",
+                lambda record: record.data.get("issn"),
+            ),
+            ColumnDefinition(
                 "AVESİS'te Aç",
                 lambda record: record.source_url,
                 is_hyperlink=True,
@@ -103,8 +137,15 @@ SHEET_DEFINITIONS = {
                 "Akademisyen",
                 lambda record: record.academician_name,
             ),
+            ColumnDefinition(
+                "Kayıt Kaynağı",
+                _format_source_names,
+            ),
             ColumnDefinition("Yıl", lambda record: record.year),
-            ColumnDefinition("Bildiri Adı", lambda record: record.title),
+            ColumnDefinition(
+                "Bildiri Adı",
+                lambda record: record.title,
+            ),
             ColumnDefinition(
                 "Yazarlar",
                 lambda record: record.contributor_names,
@@ -134,6 +175,10 @@ SHEET_DEFINITIONS = {
                 lambda record: record.data.get("doi"),
             ),
             ColumnDefinition(
+                "Kapsam",
+                lambda record: record.data.get("scope"),
+            ),
+            ColumnDefinition(
                 "AVESİS'te Aç",
                 lambda record: record.source_url,
                 is_hyperlink=True,
@@ -148,8 +193,15 @@ SHEET_DEFINITIONS = {
                 "Akademisyen",
                 lambda record: record.academician_name,
             ),
+            ColumnDefinition(
+                "Kayıt Kaynağı",
+                _format_source_names,
+            ),
             ColumnDefinition("Yıl", lambda record: record.year),
-            ColumnDefinition("Başlık", lambda record: record.title),
+            ColumnDefinition(
+                "Başlık",
+                lambda record: record.title,
+            ),
             ColumnDefinition(
                 "Yazarlar",
                 lambda record: record.contributor_names,
@@ -179,6 +231,10 @@ SHEET_DEFINITIONS = {
                 lambda record: record.data.get("editors"),
             ),
             ColumnDefinition(
+                "ISBN",
+                lambda record: record.data.get("isbn"),
+            ),
+            ColumnDefinition(
                 "AVESİS'te Aç",
                 lambda record: record.source_url,
                 is_hyperlink=True,
@@ -193,7 +249,14 @@ SHEET_DEFINITIONS = {
                 "Akademisyen",
                 lambda record: record.academician_name,
             ),
-            ColumnDefinition("Proje Adı", lambda record: record.title),
+            ColumnDefinition(
+                "Kayıt Kaynağı",
+                _format_source_names,
+            ),
+            ColumnDefinition(
+                "Proje Adı",
+                lambda record: record.title,
+            ),
             ColumnDefinition(
                 "Proje Ekibi/Roller",
                 lambda record: record.contributor_text,
@@ -211,6 +274,14 @@ SHEET_DEFINITIONS = {
                 lambda record: record.data.get(
                     "supporting_organization"
                 ),
+            ),
+            ColumnDefinition(
+                "Proje Durumu",
+                lambda record: record.data.get("status"),
+            ),
+            ColumnDefinition(
+                "Bütçe",
+                _format_budget,
             ),
             ColumnDefinition(
                 "Başlangıç",
@@ -235,7 +306,14 @@ SHEET_DEFINITIONS = {
                 "Akademisyen",
                 lambda record: record.academician_name,
             ),
-            ColumnDefinition("Patent Adı", lambda record: record.title),
+            ColumnDefinition(
+                "Kayıt Kaynağı",
+                _format_source_names,
+            ),
+            ColumnDefinition(
+                "Patent Adı",
+                lambda record: record.title,
+            ),
             ColumnDefinition(
                 "Mucitler",
                 lambda record: record.contributor_names,
@@ -267,6 +345,10 @@ SHEET_DEFINITIONS = {
                 lambda record: record.data.get(
                     "application_country"
                 ),
+            ),
+            ColumnDefinition(
+                "Patent Başvuru Sahibi",
+                lambda record: record.data.get("applicants"),
             ),
             ColumnDefinition(
                 "Başvuru Tarihi",
@@ -377,7 +459,7 @@ class ExcelExporter:
         last_column = get_column_letter(len(headers))
 
         sheet.merge_cells(f"A1:{last_column}1")
-        sheet["A1"] = "DEÜ AVESİS Akademik Rapor"
+        sheet["A1"] = "DEÜ Akademik Rapor"
         sheet["A1"].font = Font(size=16, bold=True, color="FFFFFF")
         sheet["A1"].fill = self._header_fill
         sheet["A1"].alignment = Alignment(horizontal="center")

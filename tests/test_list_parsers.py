@@ -132,3 +132,27 @@ def test_extracts_publication_citation_and_year() -> None:
         "Örnek Dergi, cilt.5, ss.10-20, 2026"
     )
     assert items[0].year == 2026
+
+def test_deduplicates_repeated_project_detail_url() -> None:
+    html = """
+    <div class="ac-item">
+        <div class="item-head"><span>Desteklenen Projeler</span></div>
+
+        <h3>
+            <a href="/proje/44444444-4444-4444-8444-444444444444/project">
+                Zafere Doğru 2023
+            </a>
+        </h3>
+
+        <h3>
+            <a href="/proje/44444444-4444-4444-8444-444444444444/project">
+                Zafere Doğru 2023
+            </a>
+        </h3>
+    </div>
+    """
+
+    items = parse_project_list(html)
+
+    assert len(items) == 1
+    assert items[0].title == "Zafere Doğru 2023"

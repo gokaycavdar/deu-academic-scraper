@@ -55,6 +55,7 @@ def _parse_table_publications(
 ) -> list[YokPublicationListItem]:
     items: list[YokPublicationListItem] = []
     seen_detail_urls: set[str] = set()
+    seen_dois: set[str] = set()
 
     for row in soup.select("tr"):
         detail_link = row.select_one(
@@ -126,11 +127,18 @@ def _parse_table_publications(
             continue
 
         detail_url = urljoin(page_url, detail_href)
+        normalized_doi = _normalize_doi(data.get("doi"))
 
         if detail_url in seen_detail_urls:
             continue
 
+        if normalized_doi and normalized_doi in seen_dois:
+            continue
+
         seen_detail_urls.add(detail_url)
+
+        if normalized_doi:
+            seen_dois.add(normalized_doi)
 
         items.append(
             YokPublicationListItem(
@@ -381,6 +389,18 @@ def _extract_doi(element: Tag) -> str | None:
 
     return None
 
+def _normalize_doi(value: str | None) -> str | None:
+    if value is None:
+        return None
+
+    normalized = re.sub(
+        r"^https?://(?:dx\.)?doi\.org/",
+        "",
+        value.strip(),
+        flags=re.IGNORECASE,
+    )
+
+    return normalized.casefold() or None
 
 def _extract_labeled_value(
     text: str,

@@ -28,6 +28,7 @@ class ActivityListItem:
 def parse_project_list(html: str) -> list[ActivityListItem]:
     soup = BeautifulSoup(html, "html.parser")
     activities: list[ActivityListItem] = []
+    seen_detail_urls: set[str] = set()
 
     for section in soup.select("div.ac-item"):
         section_title = _get_section_title(section)
@@ -40,9 +41,15 @@ def parse_project_list(html: str) -> list[ActivityListItem]:
         if record_type is None:
             continue
 
-        activities.extend(
-            _parse_activity_section(section, record_type)
-        )
+        for activity in _parse_activity_section(
+            section,
+            record_type,
+        ):
+            if activity.detail_url in seen_detail_urls:
+                continue
+
+            seen_detail_urls.add(activity.detail_url)
+            activities.append(activity)
 
     return activities
 
@@ -135,7 +142,8 @@ def _extract_record_id(
         UUID(record_id)
     except ValueError as error:
         raise ValueError(
-            f"Aktivite bağlantısında geçersiz kayıt ID'si var: {detail_url}"
+            "Aktivite bağlantısında geçersiz kayıt ID'si var: "
+            f"{detail_url}"
         ) from error
 
     return record_id
