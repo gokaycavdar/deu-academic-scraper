@@ -100,3 +100,35 @@ def test_parses_project_and_patent_sections() -> None:
         "https://avesis.deu.edu.tr/"
         "fikrimulkiyet/55555555-5555-4555-8555-555555555555/patent"
     )
+    
+def test_extracts_publication_citation_and_year() -> None:
+    html = """
+    <div class="ac-item">
+        <div class="item-head"><span>Makaleler</span></div>
+
+        <div class="pub-item with-icon">
+            <div class="content-wrapper">
+                <h3 class="title">
+                    <a href="/yayin/11111111-1111-4111-8111-111111111111/article">
+                        <strong>Örnek Makale</strong>
+                    </a>
+                </h3>
+
+                <div class="description">
+                    <div class="citation">Yazar A., Yazar B.</div>
+                    <div class="citation">
+                        Örnek Dergi, cilt.5, ss.10-20, 2026
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    """
+
+    items = parse_publication_list(html)
+
+    assert len(items) == 1
+    assert items[0].citation_text == (
+        "Örnek Dergi, cilt.5, ss.10-20, 2026"
+    )
+    assert items[0].year == 2026

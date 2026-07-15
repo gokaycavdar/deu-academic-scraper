@@ -15,6 +15,8 @@ def make_item(
         record_type=record_type,
         title=title,
         detail_url="https://avesis.deu.edu.tr/yayin/test",
+        citation_text="",
+        year=None,
     )
 
 

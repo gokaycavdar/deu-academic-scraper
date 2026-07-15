@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from enum import Enum
 from urllib.parse import urljoin, urlparse
@@ -9,6 +10,10 @@ from bs4 import BeautifulSoup
 
 
 AVESIS_BASE_URL = "https://avesis.deu.edu.tr"
+
+YEAR_PATTERN = re.compile(
+    r"(?<!\d)(?:19|20)\d{2}(?!\d)"
+)
 
 
 class PublicationType(str, Enum):
@@ -23,6 +28,8 @@ class PublicationListItem:
     record_type: PublicationType
     title: str
     detail_url: str
+    citation_text: str
+    year: int | None
 
 
 def parse_publication_list(html: str) -> list[PublicationListItem]:
@@ -40,7 +47,9 @@ def parse_publication_list(html: str) -> list[PublicationListItem]:
         if record_type is None:
             continue
 
-        for publication_element in section.select("div.pub-item.with-icon"):
+        for publication_element in section.select(
+            "div.pub-item.with-icon"
+        ):
             item = _parse_publication_item(
                 publication_element,
                 record_type,
@@ -96,6 +105,7 @@ def _parse_publication_item(
         else anchor.get_text(" ", strip=True)
     )
 
+    citation_text = _extract_citation_text(publication_element)
     detail_url = urljoin(AVESIS_BASE_URL, anchor["href"])
     record_id = _extract_record_id(detail_url)
 
@@ -104,7 +114,32 @@ def _parse_publication_item(
         record_type=record_type,
         title=title,
         detail_url=detail_url,
+        citation_text=citation_text,
+        year=_extract_year(citation_text),
     )
+
+
+def _extract_citation_text(publication_element) -> str:
+    citation_elements = publication_element.select(
+        "div.description > div.citation"
+    )
+
+    if len(citation_elements) < 2:
+        return ""
+
+    return citation_elements[1].get_text(
+        " ",
+        strip=True,
+    )
+
+
+def _extract_year(citation_text: str) -> int | None:
+    matches = YEAR_PATTERN.findall(citation_text)
+
+    if not matches:
+        return None
+
+    return int(matches[-1])
 
 
 def _extract_record_id(detail_url: str) -> str:
@@ -121,7 +156,8 @@ def _extract_record_id(detail_url: str) -> str:
         UUID(record_id)
     except ValueError as error:
         raise ValueError(
-            f"Yayın bağlantısında geçersiz kayıt ID'si var: {detail_url}"
+            "Yayın bağlantısında geçersiz kayıt ID'si var: "
+            f"{detail_url}"
         ) from error
 
     return record_id

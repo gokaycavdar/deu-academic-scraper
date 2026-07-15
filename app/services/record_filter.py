@@ -48,6 +48,19 @@ class YearScope:
         return self.start_year <= year <= self.end_year
 
 
+def list_year_matches_year_scope(
+    year: int | None,
+    year_scope: YearScope,
+) -> bool:
+    if year_scope.is_all_years:
+        return True
+
+    if year is None:
+        return True
+
+    return year_scope.contains(year)
+
+
 def filter_records(
     records: Iterable[NormalizedRecord],
     year_scope: YearScope,
@@ -69,10 +82,10 @@ def record_matches_year_scope(
     if record.record_type == "project":
         return _project_matches_year_scope(record, year_scope)
 
-    if record.year is None:
-        return True
-
-    return year_scope.contains(record.year)
+    return list_year_matches_year_scope(
+        record.year,
+        year_scope,
+    )
 
 
 def _project_matches_year_scope(

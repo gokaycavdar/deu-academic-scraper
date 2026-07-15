@@ -4,6 +4,12 @@ from app.services.record_filter import (
     filter_records,
     record_matches_year_scope,
 )
+from app.services.record_filter import (
+    YearScope,
+    filter_records,
+    list_year_matches_year_scope,
+    record_matches_year_scope,
+)
 
 
 def make_record(
@@ -78,3 +84,10 @@ def test_project_is_excluded_when_dates_do_not_overlap_range() -> None:
         project,
         YearScope.single_year(2026),
     )
+    
+def test_list_year_keeps_matching_and_undated_items() -> None:
+    year_scope = YearScope.single_year(2026)
+
+    assert list_year_matches_year_scope(2026, year_scope)
+    assert list_year_matches_year_scope(None, year_scope)
+    assert not list_year_matches_year_scope(2025, year_scope)

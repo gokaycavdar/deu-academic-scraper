@@ -24,6 +24,7 @@ from app.services.avesis.project_list_parser import (
 from app.services.faculty_catalog import Faculty
 from app.services.record_filter import (
     YearScope,
+    list_year_matches_year_scope,
     record_matches_year_scope,
 )
 
@@ -97,6 +98,7 @@ class ReportService:
         work_items = self._build_detail_work_items(
             academicians=academician_list,
             selected_record_types=selected_record_types,
+            year_scope=year_scope,
             result=result,
             progress_callback=progress_callback,
         )
@@ -133,6 +135,7 @@ class ReportService:
         self,
         academicians: list[Faculty],
         selected_record_types: set[str],
+        year_scope: YearScope,
         result: ReportResult,
         progress_callback: ProgressCallback | None,
     ) -> list[DetailWorkItem]:
@@ -154,6 +157,7 @@ class ReportService:
                     self._get_publication_work_items(
                         academician=academician,
                         selected_record_types=selected_record_types,
+                        year_scope=year_scope,
                         result=result,
                     )
                 )
@@ -183,6 +187,7 @@ class ReportService:
         self,
         academician: Faculty,
         selected_record_types: set[str],
+        year_scope: YearScope,
         result: ReportResult,
     ) -> list[DetailWorkItem]:
         try:
@@ -206,7 +211,13 @@ class ReportService:
                 item=item,
             )
             for item in items
-            if item.record_type.value in selected_record_types
+            if (
+                item.record_type.value in selected_record_types
+                and list_year_matches_year_scope(
+                    item.year,
+                    year_scope,
+                )
+            )
         ]
 
     def _get_activity_work_items(
