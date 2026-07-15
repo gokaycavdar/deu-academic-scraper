@@ -24,41 +24,67 @@
         <div id="form-error" class="form-error" role="alert" hidden></div>
 
         <form id="report-form" action="{{ url_for('start_report') }}" method="post">
-            <section class="report-layout">
-                <div class="panel">
-                    <div class="panel-heading">
-                        <span class="step">1</span>
-                        <div>
-                            <h2>Akademisyenler</h2>
-                            <p>Raporlanacak bir veya daha fazla akademisyeni seçin.</p>
-                        </div>
-                    </div>
+            <section class="panel academician-panel">
+                <div class="panel-heading">
+                    <span class="step">1</span>
 
-                    <input id="academician-search" type="search" placeholder="Akademisyen veya birim ara"
-                        aria-label="Akademisyen veya birim ara">
-
-                    <div class="faculty-list">
-                        {% for academician in academicians %}
-                        <label class="faculty-option"
-                            data-search-text="{{ academician.full_name }} {{ academician.unit }}">
-                            <input type="checkbox" name="academician_ids" value="{{ academician.id }}">
-
-                            <span>
-                                <strong>{{ academician.full_name }}</strong>
-                                <small>{{ academician.unit }}</small>
-                            </span>
-                        </label>
-                        {% else %}
-                        <div class="empty-state">
-                            Seçilebilecek aktif akademisyen bulunamadı.
-                        </div>
-                        {% endfor %}
+                    <div>
+                        <h2>Akademisyenler</h2>
+                        <p>Raporlanacak bir veya daha fazla akademisyeni seçin.</p>
                     </div>
                 </div>
 
+                <div class="academician-tools">
+                    <div class="academician-search">
+                        <label class="visually-hidden" for="academician-search">
+                            Akademisyen veya birim ara
+                        </label>
+
+                        <input id="academician-search" type="search" placeholder="Akademisyen adıyla ara..."
+                            autocomplete="off">
+                    </div>
+
+                    <div class="academician-selection">
+                        <span id="academician-selection-count" class="selection-count">
+                            0 akademisyen seçildi
+                        </span>
+
+                        <button id="clear-academicians" class="clear-selection-button" type="button" disabled>
+                            Seçimi temizle
+                        </button>
+                    </div>
+                </div>
+
+                <p class="panel-note">
+                    Liste akademik unvan hiyerarşisine göre sıralıdır.
+                </p>
+
+                <div class="faculty-list" role="group" aria-label="Akademisyen seçimi">
+                    {% for academician in academicians %}
+                    <label class="faculty-option" data-search-text="{{ academician.full_name }} {{ academician.unit }}">
+                        <input type="checkbox" name="academician_ids" value="{{ academician.id }}">
+
+                        <span class="faculty-name">
+                            {{ academician.full_name }}
+                        </span>
+                    </label>
+                    {% else %}
+                    <div class="empty-state">
+                        Seçilebilecek aktif akademisyen bulunamadı.
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <p id="academician-search-empty" class="search-empty" hidden>
+                    Aramanızla eşleşen akademisyen bulunamadı.
+                </p>
+            </section>
+
+            <section class="report-layout">
                 <div class="panel">
                     <div class="panel-heading">
                         <span class="step">2</span>
+
                         <div>
                             <h2>Zaman kapsamı</h2>
                             <p>Varsayılan seçim tek yıldır.</p>
@@ -116,6 +142,7 @@
                 <div class="panel">
                     <div class="panel-heading">
                         <span class="step">3</span>
+
                         <div>
                             <h2>Kayıt türleri</h2>
                             <p>Tümü başlangıçta seçili gelir.</p>
@@ -158,7 +185,22 @@
 
     <script>
         const searchInput = document.querySelector("#academician-search");
-        const academicianOptions = document.querySelectorAll(".faculty-option");
+        const academicianOptions = Array.from(
+            document.querySelectorAll(".faculty-option")
+        );
+        const academicianCheckboxes = document.querySelectorAll(
+            'input[name="academician_ids"]'
+        );
+        const selectionCount = document.querySelector(
+            "#academician-selection-count"
+        );
+        const clearAcademiciansButton = document.querySelector(
+            "#clear-academicians"
+        );
+        const searchEmpty = document.querySelector(
+            "#academician-search-empty"
+        );
+
         const reportForm = document.querySelector("#report-form");
         const reportButton = document.querySelector("#report-submit");
         const formError = document.querySelector("#form-error");
@@ -180,18 +222,58 @@
 
         let isSubmitting = false;
 
-        searchInput.addEventListener("input", () => {
-            const searchText = searchInput.value
-                .trim()
-                .toLocaleLowerCase("tr");
+        function normalizeSearchText(value) {
+            return value.toLocaleLowerCase("tr-TR").trim();
+        }
+
+        function updateAcademicianSelectionUi() {
+            const selectedCount = document.querySelectorAll(
+                'input[name="academician_ids"]:checked'
+            ).length;
+
+            selectionCount.textContent = (
+                `${selectedCount} akademisyen seçildi`
+            );
+
+            clearAcademiciansButton.disabled = selectedCount === 0;
 
             academicianOptions.forEach((option) => {
-                const optionText = option.dataset.searchText
-                    .toLocaleLowerCase("tr");
+                const checkbox = option.querySelector(
+                    'input[name="academician_ids"]'
+                );
 
-                option.hidden = !optionText.includes(searchText);
+                option.classList.toggle(
+                    "is-selected",
+                    checkbox.checked
+                );
             });
-        });
+        }
+
+        function filterAcademicians() {
+            const searchText = normalizeSearchText(searchInput.value);
+            let visibleOptionCount = 0;
+
+            academicianOptions.forEach((option) => {
+                const optionText = normalizeSearchText(
+                    option.dataset.searchText || ""
+                );
+
+                const isVisible = (
+                    !searchText || optionText.includes(searchText)
+                );
+
+                option.classList.toggle(
+                    "is-filtered-out",
+                    !isVisible
+                );
+
+                if (isVisible) {
+                    visibleOptionCount += 1;
+                }
+            });
+
+            searchEmpty.hidden = visibleOptionCount > 0;
+        }
 
         function updatePeriodControls() {
             const selectedPeriod = document.querySelector(
@@ -226,9 +308,7 @@
             progressMessage.textContent = status.message;
 
             if (status.total === null) {
-                progressCount.textContent = (
-                    "Kayıt sayısı hesaplanıyor..."
-                );
+                progressCount.textContent = "Kayıt sayısı hesaplanıyor...";
                 progressBar.style.width = "0%";
                 progressTrack.setAttribute("aria-valuenow", "0");
                 return;
@@ -289,13 +369,30 @@
 
                 window.setTimeout(
                     () => pollReportStatus(statusUrl),
-                    1000,
+                    1000
                 );
             } catch (error) {
                 showError(error.message);
                 resetSubmitButton();
             }
         }
+
+        searchInput.addEventListener("input", filterAcademicians);
+
+        academicianCheckboxes.forEach((checkbox) => {
+            checkbox.addEventListener(
+                "change",
+                updateAcademicianSelectionUi
+            );
+        });
+
+        clearAcademiciansButton.addEventListener("click", () => {
+            academicianCheckboxes.forEach((checkbox) => {
+                checkbox.checked = false;
+            });
+
+            updateAcademicianSelectionUi();
+        });
 
         periodInputs.forEach((input) => {
             input.addEventListener("change", updatePeriodControls);
@@ -359,6 +456,8 @@
         });
 
         updatePeriodControls();
+        updateAcademicianSelectionUi();
+        filterAcademicians();
     </script>
 </body>
 

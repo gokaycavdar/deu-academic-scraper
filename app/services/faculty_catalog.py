@@ -8,6 +8,7 @@ CATALOG_PATH = PROJECT_DIR / "data" / "faculty_catalog.csv"
 
 REQUIRED_COLUMNS = {
     "id",
+    "sort_order",
     "full_name",
     "unit",
     "profile_url",
@@ -18,6 +19,7 @@ REQUIRED_COLUMNS = {
 @dataclass(frozen=True)
 class Faculty:
     id: str
+    sort_order: int
     full_name: str
     unit: str
     profile_url: str
@@ -39,10 +41,12 @@ def load_active_faculties(
         if missing_columns:
             missing = ", ".join(sorted(missing_columns))
             raise ValueError(
-                f"Akademisyen katalog dosyasında eksik kolonlar var: {missing}"
+                "Akademisyen katalog dosyasında eksik kolonlar var: "
+                f"{missing}"
             )
 
         faculties: list[Faculty] = []
+        seen_ids: set[str] = set()
 
         for row in reader:
             if not _is_active(row["is_active"]):
@@ -50,15 +54,52 @@ def load_active_faculties(
 
             faculty = Faculty(
                 id=row["id"].strip(),
+                sort_order=_parse_sort_order(
+                    row["sort_order"],
+                    row["id"],
+                ),
                 full_name=row["full_name"].strip(),
                 unit=row["unit"].strip(),
                 profile_url=row["profile_url"].strip(),
             )
 
             _validate_faculty(faculty)
+
+            if faculty.id in seen_ids:
+                raise ValueError(
+                    "Akademisyen kataloğunda yinelenen id var: "
+                    f"{faculty.id}"
+                )
+
+            seen_ids.add(faculty.id)
             faculties.append(faculty)
 
-    return sorted(faculties, key=lambda faculty: faculty.full_name.casefold())
+    return sorted(
+        faculties,
+        key=lambda faculty: (
+            faculty.sort_order,
+            faculty.full_name.casefold(),
+        ),
+    )
+
+
+def _parse_sort_order(
+    value: str | None,
+    faculty_id: str,
+) -> int:
+    try:
+        sort_order = int((value or "").strip())
+    except ValueError as error:
+        raise ValueError(
+            f"'{faculty_id}' kaydında geçersiz sort_order değeri var."
+        ) from error
+
+    if sort_order < 1:
+        raise ValueError(
+            f"'{faculty_id}' kaydında sort_order pozitif olmalıdır."
+        )
+
+    return sort_order
 
 
 def _is_active(value: str | None) -> bool:
@@ -84,7 +125,9 @@ def _validate_faculty(faculty: Faculty) -> None:
             f"'{faculty.id}' kaydında birim bilgisi boş."
         )
 
-    if not faculty.profile_url.startswith("https://avesis.deu.edu.tr/"):
+    if not faculty.profile_url.startswith(
+        "https://avesis.deu.edu.tr/"
+    ):
         raise ValueError(
             f"'{faculty.id}' kaydında geçersiz AVESİS profil URL'si var."
         )

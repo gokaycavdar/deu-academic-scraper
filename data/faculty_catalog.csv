@@ -1,2 +1,23 @@
-id,full_name,unit,profile_url,is_active
-gokhan-dalkilic,Gökhan Dalkılıç,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/gokhan.dalkilic,true
+id,sort_order,full_name,unit,profile_url,is_active
+derya-birant,10,Derya Birant,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/derya.birant,true
+gokhan-dalkilic,20,Gökhan Dalkılıç,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/gokhan.dalkilic,true
+mehmet-hilal-ozcanhan,30,Mehmet Hilal Özcanhan,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/mehmet.ozcanhan,true
+recep-alp-kut,40,Recep Alp Kut,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/alp.kut,true
+semih-utku,50,Semih Utku,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/semih.utku,true
+yalcin-cebi,60,Yalçın Çebi,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/yalcin.cebi,true
+kokten-ulas-birant,70,Kökten Ulaş Birant,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/ulas.birant,true
+ozkan-ufuk-nalbantoglu,80,Özkan Ufuk Nalbantoğlu,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/ozkanufuk.nalbantoglu,true
+ozlem-varliklar,90,Özlem Varlıklar,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/aktas.ozlem,true
+yunus-dogan,100,Yunus Doğan,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/y.dogan,true
+elife-ozturk-kiyak,110,Elife Öztürk Kıyak,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/elife.ozturk,true
+feristah-dalkilic,120,Feriştah Dalkılıç,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/feristah.orucu,true
+goksu-tuysuzoglu,130,Göksu Tüysüzoğlu,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/goksu.tuysuzoglu,true
+ibrahim-atakan-kubilay,140,İbrahim Atakan Kubilay,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/atakan.kubilay,true
+serife-yilmaz,150,Şerife Yılmaz,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/serife.yilmaz,true
+tanzer-onurgil,160,Tanzer Onurgil,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/tanzer.onurgil,true
+ege-kara,170,Ege Kara,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/ege.kara,true
+fatih-dicle,180,Fatih Dicle,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/fatih.dicle,true
+hasan-korkmaz,190,Hasan Korkmaz,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/hasan.korkmaz,true
+muharremcan-gulye,200,Muharremcan Gülye,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/muharremcan.gulye,true
+orkun-cinar,210,Orkun Çınar,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/orkun.cinar,true
+safa-cevik,220,Safa Çevik,Mühendislik Fakültesi / Bilgisayar Mühendisliği,https://avesis.deu.edu.tr/safa.cevik,true

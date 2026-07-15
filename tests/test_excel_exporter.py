@@ -14,6 +14,7 @@ def test_exports_summary_and_selected_record_sheets(
         full_name="Gökhan Dalkılıç",
         unit="Mühendislik Fakültesi / Bilgisayar Mühendisliği",
         profile_url="https://avesis.deu.edu.tr/gokhan.dalkilic",
+        sort_order=10,
     )
 
     article = NormalizedRecord(
