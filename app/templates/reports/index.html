@@ -21,97 +21,214 @@
     </header>
 
     <main class="container page-content">
-        <section class="report-layout">
-            <div class="panel">
-                <div class="panel-heading">
-                    <span class="step">1</span>
-                    <div>
-                        <h2>Akademisyenler</h2>
-                        <p>Raporlanacak bir veya daha fazla akademisyeni seçin.</p>
+        {% if error_message %}
+        <div class="form-error" role="alert">
+            {{ error_message }}
+        </div>
+        {% endif %}
+
+        <form id="report-form" action="{{ url_for('export_report') }}" method="post">
+            <section class="report-layout">
+                <div class="panel">
+                    <div class="panel-heading">
+                        <span class="step">1</span>
+                        <div>
+                            <h2>Akademisyenler</h2>
+                            <p>Raporlanacak bir veya daha fazla akademisyeni seçin.</p>
+                        </div>
+                    </div>
+
+                    <input id="academician-search" type="search" placeholder="Akademisyen veya birim ara"
+                        aria-label="Akademisyen veya birim ara">
+
+                    <div class="faculty-list">
+                        {% for academician in academicians %}
+                        <label class="faculty-option"
+                            data-search-text="{{ academician.full_name }} {{ academician.unit }}">
+                            <input type="checkbox" name="academician_ids" value="{{ academician.id }}" {% if
+                                academician.id in selected_academician_ids %}checked{% endif %}>
+
+                            <span>
+                                <strong>{{ academician.full_name }}</strong>
+                                <small>{{ academician.unit }}</small>
+                            </span>
+                        </label>
+                        {% else %}
+                        <div class="empty-state">
+                            Seçilebilecek aktif akademisyen bulunamadı.
+                        </div>
+                        {% endfor %}
                     </div>
                 </div>
 
-                <input id="faculty-search" type="search" placeholder="Akademisyen veya birim ara"
-                    aria-label="Akademisyen veya birim ara">
+                <div class="panel">
+                    <div class="panel-heading">
+                        <span class="step">2</span>
+                        <div>
+                            <h2>Zaman kapsamı</h2>
+                            <p>Varsayılan seçim tek yıldır.</p>
+                        </div>
+                    </div>
 
-                <div class="faculty-list">
-                    {% for faculty in faculties %}
-                    <label class="faculty-option" data-search-text="{{ faculty.full_name }} {{ faculty.unit }}">
-                        <input type="checkbox" name="faculty_ids" value="{{ faculty.id }}">
+                    <div class="radio-row">
+                        <label>
+                            <input type="radio" name="period_mode" value="single" {% if period_mode=="single"
+                                %}checked{% endif %}>
+                            Tek yıl
+                        </label>
 
-                        <span>
-                            <strong>{{ faculty.full_name }}</strong>
-                            <small>{{ faculty.unit }}</small>
+                        <select name="single_year" aria-label="Yıl seç" data-period-control="single" {% if period_mode
+                            !="single" %}disabled{% endif %}>
+                            {% for year in year_options %}
+                            <option value="{{ year }}" {% if year==single_year %}selected{% endif %}>
+                                {{ year }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="radio-row">
+                        <label>
+                            <input type="radio" name="period_mode" value="range" {% if period_mode=="range" %}checked{%
+                                endif %}>
+                            Yıl aralığı
+                        </label>
+
+                        <span class="period-inputs">
+                            <select name="start_year" aria-label="Başlangıç yılı" data-period-control="range" {% if
+                                period_mode !="range" %}disabled{% endif %}>
+                                {% for year in year_options %}
+                                <option value="{{ year }}" {% if year==start_year %}selected{% endif %}>
+                                    {{ year }}
+                                </option>
+                                {% endfor %}
+                            </select>
+
+                            <select name="end_year" aria-label="Bitiş yılı" data-period-control="range" {% if
+                                period_mode !="range" %}disabled{% endif %}>
+                                {% for year in year_options %}
+                                <option value="{{ year }}" {% if year==end_year %}selected{% endif %}>
+                                    {{ year }}
+                                </option>
+                                {% endfor %}
+                            </select>
                         </span>
-                    </label>
-                    {% else %}
-                    <div class="empty-state">
-                        Seçilebilecek aktif akademisyen bulunamadı.
                     </div>
-                    {% endfor %}
-                </div>
-            </div>
 
-            <div class="panel">
-                <div class="panel-heading">
-                    <span class="step">2</span>
-                    <div>
-                        <h2>Zaman kapsamı</h2>
-                        <p>Varsayılan seçim tek yıldır.</p>
+                    <div class="radio-row">
+                        <label>
+                            <input type="radio" name="period_mode" value="all" {% if period_mode=="all" %}checked{%
+                                endif %}>
+                            Tüm yıllar
+                        </label>
                     </div>
                 </div>
 
-                <label class="radio-row">
-                    <input type="radio" name="period" checked>
-                    Tek yıl
-                    <select aria-label="Yıl seç">
-                        <option>2026</option>
-                        <option>2025</option>
-                        <option>2024</option>
-                    </select>
-                </label>
+                <div class="panel">
+                    <div class="panel-heading">
+                        <span class="step">3</span>
+                        <div>
+                            <h2>Kayıt türleri</h2>
+                            <p>Tümü başlangıçta seçili gelir.</p>
+                        </div>
+                    </div>
 
-                <label class="radio-row">
-                    <input type="radio" name="period">
-                    Yıl aralığı
-                </label>
-
-                <label class="radio-row">
-                    <input type="radio" name="period">
-                    Tüm yıllar
-                </label>
-            </div>
-
-            <div class="panel">
-                <div class="panel-heading">
-                    <span class="step">3</span>
-                    <div>
-                        <h2>Kayıt türleri</h2>
-                        <p>Tümü başlangıçta seçili gelir.</p>
+                    <div class="checkbox-grid">
+                        {% for record_type, label in record_type_options %}
+                        <label>
+                            <input type="checkbox" name="record_types" value="{{ record_type }}" {% if record_type in
+                                selected_record_types %}checked{% endif %}>
+                            {{ label }}
+                        </label>
+                        {% endfor %}
                     </div>
                 </div>
+            </section>
 
-                <div class="checkbox-grid">
-                    <label><input type="checkbox" checked> Makale</label>
-                    <label><input type="checkbox" checked> Bildiri</label>
-                    <label><input type="checkbox" checked> Kitap</label>
-                    <label><input type="checkbox" checked> Proje</label>
-                    <label><input type="checkbox" checked> Patent</label>
+            <section class="action-bar">
+                <div>
+                    <strong>Rapor hazır olduğunda tek Excel dosyası indirilecektir.</strong>
+                    <p>Seçilen kayıt türleri Excel içinde ayrı sekmeler olarak yer alır.</p>
+                    <p id="submit-status" class="submit-status" aria-live="polite"></p>
                 </div>
-            </div>
-        </section>
 
-        <section class="action-bar">
-            <div>
-                <strong>Rapor hazır olduğunda tek Excel dosyası indirilecektir.</strong>
-                <p>Seçilen kayıt türleri Excel içinde ayrı sekmeler olarak yer alır.</p>
-            </div>
-
-            <button type="button" disabled>
-                Rapor Oluştur
-            </button>
-        </section>
+                <button id="report-submit" type="submit">
+                    Excel Raporunu Oluştur
+                </button>
+            </section>
+        </form>
     </main>
+
+    <script>
+        const searchInput = document.querySelector("#academician-search");
+        const academicianOptions = document.querySelectorAll(".faculty-option");
+        const reportForm = document.querySelector("#report-form");
+        const reportButton = document.querySelector("#report-submit");
+        const submitStatus = document.querySelector("#submit-status");
+        const periodInputs = document.querySelectorAll(
+            'input[name="period_mode"]'
+        );
+        const periodControls = document.querySelectorAll(
+            "[data-period-control]"
+        );
+
+        searchInput.addEventListener("input", () => {
+            const searchText = searchInput.value.trim().toLocaleLowerCase("tr");
+
+            academicianOptions.forEach((option) => {
+                const optionText = option.dataset.searchText
+                    .toLocaleLowerCase("tr");
+
+                option.hidden = !optionText.includes(searchText);
+            });
+        });
+
+        function updatePeriodControls() {
+            const selectedPeriod = document.querySelector(
+                'input[name="period_mode"]:checked'
+            ).value;
+
+            periodControls.forEach((control) => {
+                control.disabled = (
+                    control.dataset.periodControl !== selectedPeriod
+                );
+            });
+        }
+
+        periodInputs.forEach((input) => {
+            input.addEventListener("change", updatePeriodControls);
+        });
+
+        reportForm.addEventListener("submit", (event) => {
+            const selectedAcademicians = document.querySelectorAll(
+                'input[name="academician_ids"]:checked'
+            );
+
+            const selectedRecordTypes = document.querySelectorAll(
+                'input[name="record_types"]:checked'
+            );
+
+            if (!selectedAcademicians.length) {
+                event.preventDefault();
+                submitStatus.textContent = "En az bir akademisyen seçmelisiniz.";
+                return;
+            }
+
+            if (!selectedRecordTypes.length) {
+                event.preventDefault();
+                submitStatus.textContent = "En az bir kayıt türü seçmelisiniz.";
+                return;
+            }
+
+            reportButton.disabled = true;
+            reportButton.textContent = "Rapor hazırlanıyor...";
+            submitStatus.textContent = (
+                "AVESİS kayıtları okunuyor. Seçiminize göre bu işlem sürebilir."
+            );
+        });
+
+        updatePeriodControls();
+    </script>
 </body>
 
 </html>

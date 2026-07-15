@@ -1,6 +1,6 @@
 :root {
-    --primary: #7a1f38;
-    --primary-dark: #561426;
+    --primary: #003B71;
+    --primary-dark: #003B71;
     --surface: #ffffff;
     --background: #f5f6f8;
     --border: #dfe3e8;
@@ -216,4 +216,38 @@ button:disabled {
 .faculty-option small {
     color: var(--muted);
     font-size: 12px;
+}
+
+.form-error {
+    margin-bottom: 20px;
+    padding: 14px 16px;
+    border: 1px solid #f0b8bd;
+    border-radius: 10px;
+    color: #8a1f2d;
+    background: #fff4f5;
+}
+
+.radio-row>label {
+    display: inline-flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.period-inputs {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.period-inputs select {
+    width: 92px;
+    margin-left: 0;
+}
+
+.submit-status {
+    margin-top: 8px;
+}
+
+button:not(:disabled) {
+    cursor: pointer;
 }
