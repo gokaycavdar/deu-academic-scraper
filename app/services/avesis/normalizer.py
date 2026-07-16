@@ -397,7 +397,8 @@ def _extract_conference_date(
     )[0].strip()
 
     date_text = re.sub(
-        r",\s*s{1,2}\.\s*[^,]+$",
+        r"(?:,\s*(?:cilt|sa|sayı)\.?\s*[^,]+"
+        r"|,\s*s{1,2}\.\s*[^,]+)+$",
         "",
         date_text,
         flags=re.IGNORECASE,
