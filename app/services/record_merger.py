@@ -9,8 +9,10 @@ from typing import Iterable
 from app.services.avesis.normalizer import NormalizedRecord
 
 
-AVESIS_SOURCE_NAME = "AVESİS"
-YOK_SOURCE_NAME = "YÖK Akademik"
+DOI_MATCH_RECORD_TYPES = {
+    "article",
+    "conference_paper",
+}
 
 
 def merge_source_records(
@@ -18,35 +20,58 @@ def merge_source_records(
     yok_records: Iterable[NormalizedRecord],
 ) -> list[NormalizedRecord]:
     """
-    Aynı akademisyen ve aynı kayıt türündeki kesin eşleşen AVESİS/YÖK
-    kayıtlarını birleştirir.
+    Aynı akademisyen ve kayıt türündeki kesin AVESİS/YÖK Akademik
+    eşleşmelerini birleştirir.
 
-    Eşleşmesi belirsiz kayıtlar veri kaybını önlemek için ayrı bırakılır.
+    Önce Makale ve Bildiriler için DOI üzerinden eşleştirme yapılır.
+    DOI ile eşleşmeyen kayıtlar daha sonra normalize başlık üzerinden
+    değerlendirilir. Belirsiz eşleşmeler veri kaybını önlemek için
+    ayrı bırakılır.
     """
     avesis_list = list(avesis_records)
     yok_list = list(yok_records)
 
-    avesis_groups = _group_record_indexes(avesis_list)
-    yok_groups = _group_record_indexes(yok_list)
+    matches = _match_unique_dois(
+        avesis_records=avesis_list,
+        yok_records=yok_list,
+    )
 
-    matches: dict[int, int] = {}
+    matched_avesis_indexes = set(matches)
+    matched_yok_indexes = set(matches.values())
 
-    for group_key, avesis_indexes in avesis_groups.items():
-        yok_indexes = yok_groups.get(group_key, [])
+    avesis_title_groups = _group_record_indexes(avesis_list)
+    yok_title_groups = _group_record_indexes(yok_list)
 
-        if not yok_indexes:
+    for group_key, all_avesis_indexes in (
+        avesis_title_groups.items()
+    ):
+        all_yok_indexes = yok_title_groups.get(group_key, [])
+
+        avesis_indexes = [
+            index
+            for index in all_avesis_indexes
+            if index not in matched_avesis_indexes
+        ]
+        yok_indexes = [
+            index
+            for index in all_yok_indexes
+            if index not in matched_yok_indexes
+        ]
+
+        if not avesis_indexes or not yok_indexes:
             continue
 
-        matches.update(
-            _match_group(
-                avesis_records=avesis_list,
-                yok_records=yok_list,
-                avesis_indexes=avesis_indexes,
-                yok_indexes=yok_indexes,
-            )
+        title_matches = _match_group(
+            avesis_records=avesis_list,
+            yok_records=yok_list,
+            avesis_indexes=avesis_indexes,
+            yok_indexes=yok_indexes,
         )
 
-    matched_yok_indexes = set(matches.values())
+        matches.update(title_matches)
+        matched_avesis_indexes.update(title_matches)
+        matched_yok_indexes.update(title_matches.values())
+
     merged_records: list[NormalizedRecord] = []
 
     for avesis_index, avesis_record in enumerate(avesis_list):
@@ -70,6 +95,55 @@ def merge_source_records(
     )
 
     return merged_records
+
+
+def _match_unique_dois(
+    *,
+    avesis_records: list[NormalizedRecord],
+    yok_records: list[NormalizedRecord],
+) -> dict[int, int]:
+    """
+    Başlık farkından bağımsız olarak, her iki kaynakta da yalnızca
+    birer kez görünen aynı DOI'li Makale/Bildiri kayıtlarını eşleştirir.
+    """
+    avesis_doi_groups = _group_doi_indexes(avesis_records)
+    yok_doi_groups = _group_doi_indexes(yok_records)
+
+    matches: dict[int, int] = {}
+
+    for group_key, avesis_indexes in avesis_doi_groups.items():
+        yok_indexes = yok_doi_groups.get(group_key, [])
+
+        if len(avesis_indexes) != 1 or len(yok_indexes) != 1:
+            continue
+
+        matches[avesis_indexes[0]] = yok_indexes[0]
+
+    return matches
+
+
+def _group_doi_indexes(
+    records: list[NormalizedRecord],
+) -> dict[tuple[str, str, str], list[int]]:
+    groups: dict[tuple[str, str, str], list[int]] = defaultdict(list)
+
+    for index, record in enumerate(records):
+        if record.record_type not in DOI_MATCH_RECORD_TYPES:
+            continue
+
+        doi = _normalized_doi(record.data.get("doi"))
+
+        if doi is None:
+            continue
+
+        group_key = (
+            record.academician_id,
+            record.record_type,
+            doi,
+        )
+        groups[group_key].append(index)
+
+    return groups
 
 
 def _group_record_indexes(
@@ -101,9 +175,16 @@ def _match_group(
     yok_indexes: list[int],
 ) -> dict[int, int]:
     if len(avesis_indexes) == 1 and len(yok_indexes) == 1:
-        return {
-            avesis_indexes[0]: yok_indexes[0],
-        }
+        avesis_index = avesis_indexes[0]
+        yok_index = yok_indexes[0]
+
+        if _matches_single_title_pair(
+            avesis_records[avesis_index],
+            yok_records[yok_index],
+        ):
+            return {avesis_index: yok_index}
+
+        return {}
 
     proposals: dict[int, int] = {}
 
@@ -129,6 +210,27 @@ def _match_group(
         for avesis_index, yok_index in proposals.items()
         if proposed_yok_counts[yok_index] == 1
     }
+
+
+def _matches_single_title_pair(
+    avesis_record: NormalizedRecord,
+    yok_record: NormalizedRecord,
+) -> bool:
+    """
+    Başlık grubu tekilse eşleşmeye izin verir. Ancak iki kaynakta da
+    DOI var ve DOI değerleri farklıysa kayıtlar ayrı bırakılır.
+    """
+    avesis_doi = _normalized_doi(
+        avesis_record.data.get("doi")
+    )
+    yok_doi = _normalized_doi(
+        yok_record.data.get("doi")
+    )
+
+    if avesis_doi and yok_doi:
+        return avesis_doi == yok_doi
+
+    return True
 
 
 def _matches_discriminator(

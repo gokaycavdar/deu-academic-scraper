@@ -21,6 +21,11 @@ ARTICLE_DETAIL_URL = (
     "AkademikArama/view/yayinDetay.jsp?id=1"
 )
 
+SECOND_ARTICLE_DETAIL_URL = (
+    "https://akademik.yok.gov.tr/"
+    "AkademikArama/view/yayinDetay.jsp?id=2"
+)
+
 PROJECT_SECTION_URL = (
     "https://akademik.yok.gov.tr/"
     "AkademikArama/AkademisyenProjeBilgileri?authorId=test"
@@ -165,6 +170,90 @@ def test_collects_filtered_article_and_detail_fields() -> None:
     assert record.data["journal_indexes"] == "SCI-Expanded"
     assert record.data["issn"] == "1234-5678"
 
+def test_deduplicates_same_doi_after_fetching_details() -> None:
+    article_html = """
+    <table>
+      <tr>
+        <td>
+          <a data-target="#remoteModal"
+             href="/AkademikArama/view/yayinDetay.jsp?id=1">
+            First Duplicate Article
+          </a>
+          <a class="popoverData">GÖKHAN DALKILIÇ</a>
+          Yayın Yeri: Test Journal, 2026
+          <span class="label label-info">Uluslararası</span>
+          <span class="label label-primary">Hakemli</span>
+          <span class="label label-success">SCI-Expanded</span>
+          <span class="label label-default">Özgün Makale</span>
+        </td>
+      </tr>
+
+      <tr>
+        <td>
+          <a data-target="#remoteModal"
+             href="/AkademikArama/view/yayinDetay.jsp?id=2">
+            Second Duplicate Article
+          </a>
+          <a class="popoverData">GÖKHAN DALKILIÇ</a>
+          Yayın Yeri: Test Journal, 2026
+          <span class="label label-info">Uluslararası</span>
+          <span class="label label-primary">Hakemli</span>
+          <span class="label label-success">SCI-Expanded</span>
+          <span class="label label-default">Özgün Makale</span>
+        </td>
+      </tr>
+    </table>
+    """
+
+    first_detail_html = """
+    <div class="modal-body">
+      <div class="te">
+        <strong>DOI:</strong>
+        https://dx.doi.org/10.1000/duplicate
+      </div>
+    </div>
+    """
+
+    second_detail_html = """
+    <div class="modal-body">
+      <div class="te">
+        <strong>DOI:</strong>
+        10.1000/DUPLICATE
+      </div>
+    </div>
+    """
+
+    client = FakeYokClient(
+        {
+            PROFILE_URL: make_page(
+                PROFILE_URL,
+                PROFILE_HTML,
+            ),
+            ARTICLE_SECTION_URL: make_page(
+                ARTICLE_SECTION_URL,
+                article_html,
+            ),
+            ARTICLE_DETAIL_URL: make_page(
+                ARTICLE_DETAIL_URL,
+                first_detail_html,
+            ),
+            SECOND_ARTICLE_DETAIL_URL: make_page(
+                SECOND_ARTICLE_DETAIL_URL,
+                second_detail_html,
+            ),
+        }
+    )
+
+    result = YokReportCollector(client).collect_records(
+        academicians=[make_academician()],
+        selected_record_types={"article"},
+        year_scope=YearScope.single_year(2026),
+    )
+
+    assert result.issues == []
+    assert len(result.records) == 1
+    assert result.records[0].title == "First Duplicate Article"
+    assert result.records[0].data["doi"] == "10.1000/duplicate"
 
 def test_filters_project_by_date_range() -> None:
     project_html = """

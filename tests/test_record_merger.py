@@ -184,3 +184,67 @@ def test_leaves_ambiguous_repeated_titles_separate() -> None:
         )
         for record in records
     )
+
+def test_merges_same_article_doi_with_different_titles() -> None:
+    avesis_record = make_record(
+        source_name="AVESİS",
+        record_id="avesis-1",
+        record_type="article",
+        title="Secure Communication for Drone Networks",
+        data={
+            "doi": "10.1000/shared-doi",
+            "scope": None,
+        },
+    )
+    yok_record = make_record(
+        source_name="YÖK Akademik",
+        record_id="yok-1",
+        record_type="article",
+        title="İnsansız Hava Araçları İçin Güvenli Haberleşme",
+        data={
+            "doi": "https://dx.doi.org/10.1000/SHARED-DOI",
+            "scope": "Uluslararası",
+        },
+    )
+
+    records = merge_source_records(
+        [avesis_record],
+        [yok_record],
+    )
+
+    assert len(records) == 1
+
+    record = records[0]
+
+    assert record.title == "Secure Communication for Drone Networks"
+    assert record.source_names == (
+        "AVESİS",
+        "YÖK Akademik",
+    )
+    assert record.data["scope"] == "Uluslararası"
+
+
+def test_keeps_same_conference_title_separate_when_dois_differ() -> None:
+    avesis_record = make_record(
+        source_name="AVESİS",
+        record_id="avesis-1",
+        record_type="conference_paper",
+        title="Same Conference Paper",
+        data={"doi": "10.1000/first-doi"},
+    )
+    yok_record = make_record(
+        source_name="YÖK Akademik",
+        record_id="yok-1",
+        record_type="conference_paper",
+        title="Same Conference Paper",
+        data={"doi": "10.1000/second-doi"},
+    )
+
+    records = merge_source_records(
+        [avesis_record],
+        [yok_record],
+    )
+
+    assert len(records) == 2
+    assert records[0].source_names == ("AVESİS",)
+    assert records[1].source_names == ("YÖK Akademik",)
