@@ -130,13 +130,14 @@ def test_normalizes_conference_name_and_date() -> None:
             "2026 8th International Congress on Human-Computer "
             "Interaction, Optimization and Robotic Applications "
             "(ICHORA), Ankara, Türkiye, 21 Mayıs 2026, "
-            "(Tam Metin Bildiri)"
+            "ss.765-769, (Tam Metin Bildiri)"
         ),
         fields={
             "Yayın Türü": "Bildiri / Tam Metin Bildiri",
             "Doi Numarası": "10.1109/ichora69329.2026.11537074",
             "Basıldığı Şehir": "Ankara",
             "Basıldığı Ülke": "Türkiye",
+            "Sayfa Sayıları": "ss.765-769",
         },
     )
 
@@ -154,3 +155,4 @@ def test_normalizes_conference_name_and_date() -> None:
         "Interaction, Optimization and Robotic Applications (ICHORA)"
     )
     assert record.data["conference_date"] == "21 Mayıs 2026"
+    assert record.data["pages"] == "ss.765-769"

@@ -386,8 +386,22 @@ def _extract_conference_date(
     if marker not in citation_text:
         return None
 
-    remaining_text = citation_text.split(marker, maxsplit=1)[1]
-    date_text = remaining_text.rsplit(", (", maxsplit=1)[0].strip()
+    remaining_text = citation_text.split(
+        marker,
+        maxsplit=1,
+    )[1]
+
+    date_text = remaining_text.rsplit(
+        ", (",
+        maxsplit=1,
+    )[0].strip()
+
+    date_text = re.sub(
+        r",\s*s{1,2}\.\s*[^,]+$",
+        "",
+        date_text,
+        flags=re.IGNORECASE,
+    ).strip()
 
     return date_text or None
 

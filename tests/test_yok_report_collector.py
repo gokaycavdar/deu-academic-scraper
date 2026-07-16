@@ -307,3 +307,172 @@ def test_filters_project_by_date_range() -> None:
     assert record.data["start_year"] == 2013
     assert record.data["end_year"] == 2014
     assert record.data["budget_amount"] == "498000"
+
+def test_deduplicates_yok_conference_records_by_title_year_and_dates() -> None:
+    conference_section_url = (
+        "https://akademik.yok.gov.tr/"
+        "AkademikArama/AkademisyenYayinBilgileri"
+        "?pubType=proceeding"
+    )
+
+    first_detail_url = (
+        "https://akademik.yok.gov.tr/"
+        "AkademikArama/view/yayinDetay.jsp?id=conference-1"
+    )
+
+    second_detail_url = (
+        "https://akademik.yok.gov.tr/"
+        "AkademikArama/view/yayinDetay.jsp?id=conference-2"
+    )
+
+    third_detail_url = (
+        "https://akademik.yok.gov.tr/"
+        "AkademikArama/view/yayinDetay.jsp?id=conference-3"
+    )
+
+    conference_html = """
+    <table>
+      <tr>
+        <td>
+          <a data-target="#remoteModal"
+             href="/AkademikArama/view/yayinDetay.jsp?id=conference-1">
+            Test Bildirisi
+          </a>
+
+          <a class="popoverData">YUNUS DOĞAN</a>
+          <a class="popoverData">RECEP ALP KUT</a>
+
+          Yayın Yeri: Test Conference, 2016
+          (09.10.2016 - 13.10.2016)
+
+          <span class="label label-info">Uluslararası</span>
+          <span class="label label-success">Tam metin bildiri</span>
+        </td>
+      </tr>
+
+      <tr>
+        <td>
+          <a data-target="#remoteModal"
+             href="/AkademikArama/view/yayinDetay.jsp?id=conference-2">
+            Test bildirisi
+          </a>
+
+          <a class="popoverData">YUNUS DOĞAN</a>
+          <a class="popoverData">RECEP ALP KUT</a>
+          <a class="popoverData">REYAT YILMAZ</a>
+
+          Yayın Yeri: Test Conference, 2016
+          (09.10.2016 - 13.10.2016)
+
+          <span class="label label-info">Uluslararası</span>
+          <span class="label label-success">Tam metin bildiri</span>
+        </td>
+      </tr>
+
+      <tr>
+        <td>
+          <a data-target="#remoteModal"
+             href="/AkademikArama/view/yayinDetay.jsp?id=conference-3">
+            Test Bildirisi
+          </a>
+
+          <a class="popoverData">YUNUS DOĞAN</a>
+          <a class="popoverData">RECEP ALP KUT</a>
+
+          Yayın Yeri: Different Conference, 2016
+          (14.10.2016 - 15.10.2016)
+
+          <span class="label label-info">Uluslararası</span>
+          <span class="label label-success">Tam metin bildiri</span>
+        </td>
+      </tr>
+    </table>
+    """
+
+    first_detail_html = """
+    <div class="modal-body">
+      <div class="te">
+        <strong>Başlama tarihi:</strong>
+        09.10.2016
+      </div>
+
+      <div class="te">
+        <strong>Bitiş tarihi:</strong>
+        13.10.2016
+      </div>
+    </div>
+    """
+
+    second_detail_html = """
+    <div class="modal-body">
+      <div class="te">
+        <strong>Başlama tarihi:</strong>
+        09.10.2016
+      </div>
+
+      <div class="te">
+        <strong>Bitiş tarihi:</strong>
+        13.10.2016
+      </div>
+    </div>
+    """
+
+    third_detail_html = """
+    <div class="modal-body">
+      <div class="te">
+        <strong>Başlama tarihi:</strong>
+        14.10.2016
+      </div>
+
+      <div class="te">
+        <strong>Bitiş tarihi:</strong>
+        15.10.2016
+      </div>
+    </div>
+    """
+
+    client = FakeYokClient(
+        {
+            PROFILE_URL: make_page(
+                PROFILE_URL,
+                PROFILE_HTML,
+            ),
+            conference_section_url: make_page(
+                conference_section_url,
+                conference_html,
+            ),
+            first_detail_url: make_page(
+                first_detail_url,
+                first_detail_html,
+            ),
+            second_detail_url: make_page(
+                second_detail_url,
+                second_detail_html,
+            ),
+            third_detail_url: make_page(
+                third_detail_url,
+                third_detail_html,
+            ),
+        }
+    )
+
+    result = YokReportCollector(client).collect_records(
+        academicians=[make_academician()],
+        selected_record_types={"conference_paper"},
+        year_scope=YearScope.single_year(2016),
+    )
+
+    assert result.issues == []
+    assert len(result.records) == 2
+
+    assert result.records[0].contributor_names == (
+        "YUNUS DOĞAN, RECEP ALP KUT, REYAT YILMAZ"
+    )
+
+    assert {
+        record.data["conference_date"]
+        for record in result.records
+    } == {
+        "09.10.2016 - 13.10.2016",
+        "14.10.2016 - 15.10.2016",
+    }

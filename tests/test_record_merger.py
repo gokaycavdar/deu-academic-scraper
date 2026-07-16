@@ -247,4 +247,4 @@ def test_keeps_same_conference_title_separate_when_dois_differ() -> None:
 
     assert len(records) == 2
     assert records[0].source_names == ("AVESİS",)
-    assert records[1].source_names == ("YÖK Akademik",)
+    assert records[1].source_names == ("YÖK Akademik",) 

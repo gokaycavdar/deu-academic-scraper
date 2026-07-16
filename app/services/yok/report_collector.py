@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+import re
+import unicodedata
+from dataclasses import dataclass, field, replace
 from typing import Callable, Iterable
 
 from app.services.avesis.normalizer import NormalizedRecord
@@ -55,8 +57,12 @@ class YokCollectionIssue:
 
 @dataclass
 class YokCollectionResult:
-    records: list[NormalizedRecord] = field(default_factory=list)
-    issues: list[YokCollectionIssue] = field(default_factory=list)
+    records: list[NormalizedRecord] = field(
+        default_factory=list
+    )
+    issues: list[YokCollectionIssue] = field(
+        default_factory=list
+    )
 
 
 class YokReportCollector:
@@ -133,7 +139,10 @@ class YokReportCollector:
                 result=result,
                 academician=academician,
                 record_type="profile",
-                source_url="https://akademik.yok.gov.tr/AkademikArama/",
+                source_url=(
+                    "https://akademik.yok.gov.tr/"
+                    "AkademikArama/"
+                ),
                 message=str(error),
             )
             return
@@ -242,6 +251,10 @@ class YokReportCollector:
 
         total = len(selected_items)
         seen_detail_dois: set[str] = set()
+        seen_conference_fingerprints: dict[
+            tuple[str, int, str, str],
+            int,
+        ] = {}
 
         self._notify_progress(
             progress_callback,
@@ -285,12 +298,9 @@ class YokReportCollector:
                 detail_fields=detail_fields,
             )
 
-            doi_value = record.data.get("doi")
-
-            if isinstance(doi_value, str):
-                normalized_doi = doi_value.strip().casefold() or None
-            else:
-                normalized_doi = None
+            normalized_doi = _normalized_doi(
+                record.data.get("doi")
+            )
 
             is_duplicate_doi = (
                 normalized_doi is not None
@@ -304,7 +314,29 @@ class YokReportCollector:
                 not is_duplicate_doi
                 and record_matches_year_scope(record, year_scope)
             ):
-                result.records.append(record)
+                fingerprint = _conference_duplicate_fingerprint(
+                    record
+                )
+
+                if fingerprint is None:
+                    result.records.append(record)
+                else:
+                    existing_index = (
+                        seen_conference_fingerprints.get(fingerprint)
+                    )
+
+                    if existing_index is None:
+                        seen_conference_fingerprints[fingerprint] = (
+                            len(result.records)
+                        )
+                        result.records.append(record)
+                    else:
+                        result.records[existing_index] = (
+                            _merge_duplicate_conference_records(
+                                result.records[existing_index],
+                                record,
+                            )
+                        )
 
             self._notify_progress(
                 progress_callback,
@@ -312,7 +344,8 @@ class YokReportCollector:
                 total=total,
                 message=(
                     f"{academician.full_name}: "
-                    f"YÖK Akademik {completed}/{total} kayıt işlendi."
+                    f"YÖK Akademik {completed}/{total} "
+                    "kayıt işlendi."
                 ),
             )
 
@@ -379,3 +412,159 @@ class YokReportCollector:
                 message=message,
             )
         )
+
+
+def _conference_duplicate_fingerprint(
+    record: NormalizedRecord,
+) -> tuple[str, int, str, str] | None:
+    """
+    Yalnızca DOI'si olmayan YÖK bildirilerindeki açık tekrar
+    adaylarını belirler.
+
+    Aynı başlık, yıl, başlangıç ve bitiş tarihine sahip kayıtlar
+    tek bir bildiri kabul edilir.
+    """
+    if record.record_type != "conference_paper":
+        return None
+
+    if _normalized_doi(record.data.get("doi")) is not None:
+        return None
+
+    if record.year is None:
+        return None
+
+    conference_date = record.data.get("conference_date")
+
+    if not isinstance(conference_date, str):
+        return None
+
+    date_parts = [
+        part.strip()
+        for part in conference_date.split(" - ", maxsplit=1)
+    ]
+
+    if len(date_parts) != 2 or not all(date_parts):
+        return None
+
+    title_key = _canonical_text(record.title)
+
+    if not title_key:
+        return None
+
+    return (
+        title_key,
+        record.year,
+        date_parts[0],
+        date_parts[1],
+    )
+
+
+def _merge_duplicate_conference_records(
+    first: NormalizedRecord,
+    second: NormalizedRecord,
+) -> NormalizedRecord:
+    """
+    Aynı YÖK bildirisi olduğuna karar verilen iki kayıttan daha
+    dolu olanı korur; diğerinin boş alanlarını ekler.
+    """
+    if _record_richness(second) > _record_richness(first):
+        primary = second
+        secondary = first
+    else:
+        primary = first
+        secondary = second
+
+    merged_data = dict(primary.data)
+
+    for field_name, secondary_value in secondary.data.items():
+        primary_value = merged_data.get(field_name)
+
+        if (
+            _is_blank(primary_value)
+            and not _is_blank(secondary_value)
+        ):
+            merged_data[field_name] = secondary_value
+
+    source_names = tuple(
+        dict.fromkeys(
+            (*primary.source_names, *secondary.source_names)
+        )
+    )
+
+    return replace(
+        primary,
+        contributor_names=(
+            primary.contributor_names
+            or secondary.contributor_names
+        ),
+        contributor_text=(
+            primary.contributor_text
+            or secondary.contributor_text
+        ),
+        citation_text=(
+            primary.citation_text
+            or secondary.citation_text
+        ),
+        source_url=primary.source_url or secondary.source_url,
+        year=primary.year or secondary.year,
+        data=merged_data,
+        source_names=source_names,
+    )
+
+
+def _record_richness(
+    record: NormalizedRecord,
+) -> tuple[int, int]:
+    populated_field_count = sum(
+        not _is_blank(value)
+        for value in record.data.values()
+    )
+
+    contributor_length = len(
+        _canonical_text(record.contributor_names)
+    )
+
+    return populated_field_count, contributor_length
+
+
+def _normalized_doi(value: object) -> str | None:
+    if not isinstance(value, str):
+        return None
+
+    normalized = re.sub(
+        r"^https?://(?:dx\.)?doi\.org/",
+        "",
+        value.strip(),
+        flags=re.IGNORECASE,
+    )
+    normalized = re.sub(
+        r"^doi\s*:\s*",
+        "",
+        normalized,
+        flags=re.IGNORECASE,
+    )
+
+    return normalized.casefold() or None
+
+
+def _canonical_text(value: str) -> str:
+    normalized = unicodedata.normalize(
+        "NFKD",
+        value.casefold(),
+    )
+    normalized = normalized.replace("ı", "i")
+    normalized = "".join(
+        character
+        for character in normalized
+        if not unicodedata.combining(character)
+    )
+
+    return " ".join(
+        re.findall(r"[a-z0-9]+", normalized)
+    )
+
+
+def _is_blank(value: object) -> bool:
+    return value is None or (
+        isinstance(value, str) and not value.strip()
+    )
